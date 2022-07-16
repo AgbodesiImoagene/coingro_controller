@@ -1,0 +1,5 @@
+create controller logger
+create cluster spec files
+install coredns on cluster
+use redis for strategy cached
+rewrite configure app in webserver.py

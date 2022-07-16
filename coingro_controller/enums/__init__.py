@@ -1,0 +1,1 @@
+from coingro_controller.enums.role import Role

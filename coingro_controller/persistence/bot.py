@@ -28,13 +28,15 @@ class Bot(_DECL_BASE):
 
     id = Column(BigInteger, primary_key=True)
     bot_id = Column(String(255), nullable=False, index=True, unique=True)
-    user_id = Column(BigInteger, ForeignKey('users.id'), index=True)
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, index=True)
     user = relationship("User", back_populates="bots")
+    strategy_stats = relationship("Strategy", cascade="all, delete-orphan",
+        lazy="joined", back_populates="bots")
 
     image = Column(String(255), nullable=False)
     version = Column(String(100), nullable=False)
     strategy = Column(String(100), nullable=True)
-    exchange = Column(String(25), nullable=False)
+    exchange = Column(String(25), nullable=True)
     state = Column(Enum(State), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     is_strategy = Column(Boolean, nullable=False, default=False, index=True)
@@ -123,4 +125,8 @@ class Bot(_DECL_BASE):
         Retrieve bot based on bot_id
         :return: Bot or None
         """
-        return Bot.query.filter(Order.bot_id == bot_id).first()
+        return Bot.query.filter(Bot.bot_id == bot_id).first()
+
+    @staticmethod
+    def commit():
+        Bot.query.session.commit()

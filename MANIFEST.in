@@ -1,0 +1,4 @@
+include LICENSE
+include README.md
+recursive-include coingro_controller *.py
+recursive-include strategies

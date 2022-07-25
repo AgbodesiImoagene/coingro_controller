@@ -46,6 +46,7 @@ CONTROLLER_CONF_SCHEMA = {
         'cg_api_server_username': {'type': 'string'},
         'cg_api_server_password': {'type': 'string'},
         'cg_data_pvc_claim': {'type': 'string'},
+        'cg_version': {'type': 'string'},
         'api_server': {
             'type': 'object',
             'properties': {
@@ -98,5 +99,5 @@ CONTROLLER_CONF_SCHEMA = {
             }
         },
     },
-    'required': ['coingro_image', 'api_server']
+    'required': ['cg_image', 'cg_version', 'api_server']
 }

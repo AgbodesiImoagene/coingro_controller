@@ -1,4 +1,2 @@
-git+https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/AgbodesiImoagene/coingro.git@v1.0.2#egg=coingro[all]
-
+coingro[all]
 kubernetes==24.2.0
-requests-cache==0.9.5

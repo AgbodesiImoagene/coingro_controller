@@ -57,11 +57,14 @@ def ping():
 @router.get('/version', response_model=Version, tags=['info'])
 def version(bot=Depends(get_bot), client=Depends(get_client)):
     """ Version info"""
-    return client.version(bot.bot_id)
+    try:
+        return client.version(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
-@router.get('/controller_version', response_model=Version, tags=['info'])
-def version():
+@router.get('/controller_version', response_model=Version, tags=['controller', 'info'])
+def controller_version():
     """ Version info"""
     return {"version": __version__}
 
@@ -69,263 +72,319 @@ def version():
 @router.get('/balance', response_model=Balances, tags=['info'])
 def balance(bot=Depends(get_bot), client=Depends(get_client)):
     """Account Balances"""
-    return client.balance(bot.bot_id)
+    try:
+        return client.balance(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/count', response_model=Count, tags=['info'])
 def count(bot=Depends(get_bot), client=Depends(get_client)):
-    return client.count(bot.bot_id)
+    try:
+        return client.count(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/performance', response_model=List[PerformanceEntry], tags=['info'])
 def performance(bot=Depends(get_bot), client=Depends(get_client)):
-    return client.performance(bot.bot_id)
+    try:
+        return client.performance(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/profit', response_model=Profit, tags=['info'])
 def profit(bot=Depends(get_bot), client=Depends(get_client)):
-    return client.profit(bot.bot_id)
+    try:
+        return client.profit(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/stats', response_model=Stats, tags=['info'])
 def stats(bot=Depends(get_bot), client=Depends(get_client)):
-    return client.stats(bot.bot_id)
+    try:
+        return client.stats(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/daily', response_model=Daily, tags=['info'])
-def daily(timescale: int = 7, rpc: RPC = Depends(get_rpc), config=Depends(get_config)):
-    return client.daily(bot.bot_id, timescale)
+def daily(timescale: int = 7, bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.daily(bot.bot_id, timescale)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/status', response_model=List[OpenTradeSchema], tags=['info'])
-def status(rpc: RPC = Depends(get_rpc)):
+def status(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return rpc._rpc_trade_status()
-    except RPCException:
-        return []
+        return client.status(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 # Using the responsemodel here will cause a ~100% increase in response time (from 1s to 2s)
 # on big databases. Correct response model: response_model=TradeResponse,
 @router.get('/trades', tags=['info', 'trading'])
-def trades(limit: int = 500, offset: int = 0, rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_trade_history(limit, offset=offset, order_by_id=True)
+def trades(limit: int = 500, offset: int = 0, bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.trades(bot.bot_id, limit, offset)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/trade/{tradeid}', response_model=OpenTradeSchema, tags=['info', 'trading'])
-def trade(tradeid: int = 0, rpc: RPC = Depends(get_rpc)):
+def trade(tradeid: int = 0, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return rpc._rpc_trade_status([tradeid])[0]
-    except (RPCException, KeyError):
-        raise HTTPException(status_code=404, detail='Trade not found.')
+        return client.trade(bot.bot_id, tradeid)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.delete('/trades/{tradeid}', response_model=DeleteTrade, tags=['info', 'trading'])
-def trades_delete(tradeid: int, rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_delete(tradeid)
+def trades_delete(tradeid: int, bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.delete_trade(bot.bot_id, tradeid)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
-# TODO: Missing response model
-@router.get('/edge', tags=['info'])
-def edge(rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_edge()
+# # TODO: Missing response model
+# @router.get('/edge', tags=['info'])
+# def edge(rpc: RPC = Depends(get_rpc)):
+#     return rpc._rpc_edge()
 
 
 @router.get('/show_config', response_model=ShowConfig, tags=['info'])
-def show_config(rpc: Optional[RPC] = Depends(get_rpc_optional), config=Depends(get_config)):
-    state = ''
-    strategy_version = None
-    if rpc:
-        state = rpc._coingro.state
-        strategy_version = rpc._coingro.strategy.version()
-    resp = RPC._rpc_show_config(config, state, strategy_version)
-    resp['api_version'] = API_VERSION
-    return resp
+def show_config(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.show_config(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
-# /forcebuy is deprecated with short addition. use /forceentry instead
 @router.post('/forceenter', response_model=ForceEnterResponse, tags=['trading'])
-@router.post('/forcebuy', response_model=ForceEnterResponse, tags=['trading'])
-def force_entry(payload: ForceEnterPayload, rpc: RPC = Depends(get_rpc)):
+def force_entry(payload: ForceEnterPayload, bot=Depends(get_bot), client=Depends(get_client)):
+    side = payload.side.value if payload.side else None
     ordertype = payload.ordertype.value if payload.ordertype else None
-    stake_amount = payload.stakeamount if payload.stakeamount else None
-    entry_tag = payload.entry_tag if payload.entry_tag else 'force_entry'
 
-    trade = rpc._rpc_force_entry(payload.pair, payload.price, order_side=payload.side,
-                                 order_type=ordertype, stake_amount=stake_amount,
-                                 enter_tag=entry_tag)
-
-    if trade:
-        return ForceEnterResponse.parse_obj(trade.to_json())
-    else:
-        return ForceEnterResponse.parse_obj(
-            {"status": f"Error entering {payload.side} trade for pair {payload.pair}."})
+    try:
+        return client.forceenter(bot.bot_id, payload.pair, side, payload.price, ordertype,
+                                 payload.stake_amount, payload.entry_tag)
+    except Exception as e:
+       raise HTTPException(status_code=500, detail=e)
 
 
-# /forcesell is deprecated with short addition. use /forceexit instead
 @router.post('/forceexit', response_model=ResultMsg, tags=['trading'])
-@router.post('/forcesell', response_model=ResultMsg, tags=['trading'])
-def forceexit(payload: ForceExitPayload, rpc: RPC = Depends(get_rpc)):
+def forceexit(payload: ForceExitPayload, bot=Depends(get_bot), client=Depends(get_client)):
     ordertype = payload.ordertype.value if payload.ordertype else None
-    return rpc._rpc_force_exit(payload.tradeid, ordertype)
+
+    try:
+        return client.forceexit(bot.bot_id, payload.tradeid, ordertype)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/blacklist', response_model=BlacklistResponse, tags=['info', 'pairlist'])
-def blacklist(rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_blacklist()
+def blacklist(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.blacklist(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.post('/blacklist', response_model=BlacklistResponse, tags=['info', 'pairlist'])
-def blacklist_post(payload: BlacklistPayload, rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_blacklist(payload.blacklist)
+def blacklist_post(payload: BlacklistPayload, bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.blacklist(bot.bot_id, *(payload.blacklist))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.delete('/blacklist', response_model=BlacklistResponse, tags=['info', 'pairlist'])
-def blacklist_delete(pairs_to_delete: List[str] = Query([]), rpc: RPC = Depends(get_rpc)):
+def blacklist_delete(pairs_to_delete: List[str] = Query([]), bot=Depends(get_bot), client=Depends(get_client)):
     """Provide a list of pairs to delete from the blacklist"""
-
-    return rpc._rpc_blacklist_delete(pairs_to_delete)
+    try:
+        return client.delete_blacklist(bot.bot_id, pairs_to_delete)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/whitelist', response_model=WhitelistResponse, tags=['info', 'pairlist'])
-def whitelist(rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_whitelist()
+def whitelist(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.whitelist(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/locks', response_model=Locks, tags=['info', 'locks'])
-def locks(rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_locks()
+def locks(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.locks(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.delete('/locks/{lockid}', response_model=Locks, tags=['info', 'locks'])
-def delete_lock(lockid: int, rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_delete_lock(lockid=lockid)
+def delete_lock(lockid: int, bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.delete_lock(bot.bot_id, lockid)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.post('/locks/delete', response_model=Locks, tags=['info', 'locks'])
-def delete_lock_pair(payload: DeleteLockRequest, rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_delete_lock(lockid=payload.lockid, pair=payload.pair)
+def delete_lock_pair(payload: DeleteLockRequest, bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.delete_lock(bot.bot_id, payload.lockid, payload.pair)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/logs', response_model=Logs, tags=['info'])
-def logs(limit: Optional[int] = None):
-    return RPC._rpc_get_logs(limit)
-
-
-@router.post('/start', response_model=StatusMsg, tags=['botcontrol'])
-def start(rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_start()
-
-
-@router.post('/stop', response_model=StatusMsg, tags=['botcontrol'])
-def stop(rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_stop()
-
-
-@router.post('/stopbuy', response_model=StatusMsg, tags=['botcontrol'])
-def stop_buy(rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_stopbuy()
-
-
-@router.post('/reload_config', response_model=StatusMsg, tags=['botcontrol'])
-def reload_config(rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_reload_config()
-
-
-@router.get('/pair_candles', response_model=PairHistory, tags=['candle data'])
-def pair_candles(
-        pair: str, timeframe: str, limit: Optional[int] = None, rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_analysed_dataframe(pair, timeframe, limit)
-
-
-@router.get('/pair_history', response_model=PairHistory, tags=['candle data'])
-def pair_history(pair: str, timeframe: str, timerange: str, strategy: str,
-                 config=Depends(get_config), exchange=Depends(get_exchange)):
-    # The initial call to this endpoint can be slow, as it may need to initialize
-    # the exchange class.
-    config = deepcopy(config)
-    config.update({
-        'strategy': strategy,
-    })
-    return RPC._rpc_analysed_history_full(config, pair, timeframe, timerange, exchange)
-
-
-@router.get('/plot_config', response_model=PlotConfig, tags=['candle data'])
-def plot_config(rpc: RPC = Depends(get_rpc)):
-    return PlotConfig.parse_obj(rpc._rpc_plot_config())
-
-
-@router.get('/strategies', response_model=StrategyListResponse, tags=['strategy'])
-def list_strategies(config=Depends(get_config)):
-    directory = Path(config.get(
-        'strategy_path', USERPATH_STRATEGIES))
-    from coingro.resolvers.strategy_resolver import StrategyResolver
-    strategies = StrategyResolver.search_all_objects(
-        directory, False, config.get('recursive_strategy_search', False))
-    strategies = sorted(strategies, key=lambda x: x['name'])
-
-    return {'strategies': [x['name'] for x in strategies]}
-
-
-@router.get('/strategy/{strategy}', response_model=StrategyResponse, tags=['strategy'])
-def get_strategy(strategy: str, config=Depends(get_config)):
-
-    config_ = deepcopy(config)
-    from coingro.resolvers.strategy_resolver import StrategyResolver
+def logs(limit: Optional[int] = None, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        strategy_obj = StrategyResolver._load_strategy(strategy, config_,
-                                                       extra_dir=config_.get('strategy_path'))
-    except OperationalException:
-        raise HTTPException(status_code=404, detail='Strategy not found')
-
-    return {
-        'strategy': strategy_obj.get_strategy_name(),
-        'code': strategy_obj.__source__,
-    }
+        return client.logs(bot.bot_id, limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
-@router.get('/available_pairs', response_model=AvailablePairs, tags=['candle data'])
-def list_available_pairs(timeframe: Optional[str] = None, stake_currency: Optional[str] = None,
-                         candletype: Optional[CandleType] = None, config=Depends(get_config)):
+@router.post('/start', response_model=StatusMsg, tags=['bot control'])
+def start(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.start(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
-    dh = get_datahandler(config['datadir'], config.get('dataformat_ohlcv'))
-    trading_mode: TradingMode = config.get('trading_mode', TradingMode.SPOT)
-    pair_interval = dh.ohlcv_get_available_data(config['datadir'], trading_mode)
 
-    if timeframe:
-        pair_interval = [pair for pair in pair_interval if pair[1] == timeframe]
-    if stake_currency:
-        pair_interval = [pair for pair in pair_interval if pair[0].endswith(stake_currency)]
-    if candletype:
-        pair_interval = [pair for pair in pair_interval if pair[2] == candletype]
-    else:
-        candle_type = CandleType.get_default(trading_mode)
-        pair_interval = [pair for pair in pair_interval if pair[2] == candle_type]
+@router.post('/stop', response_model=StatusMsg, tags=['bot control'])
+def stop(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.stop(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
-    pair_interval = sorted(pair_interval, key=lambda x: x[0])
 
-    pairs = list({x[0] for x in pair_interval})
-    pairs.sort()
-    result = {
-        'length': len(pairs),
-        'pairs': pairs,
-        'pair_interval': pair_interval,
-    }
-    return result
+@router.post('/stopbuy', response_model=StatusMsg, tags=['bot control'])
+def stop_buy(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.stopbuy(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
+
+
+@router.post('/reload_config', response_model=StatusMsg, tags=['bot control'])
+def reload_config(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.reload_config(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
+
+
+# @router.get('/pair_candles', response_model=PairHistory, tags=['candle data'])
+# def pair_candles(
+#         pair: str, timeframe: str, limit: Optional[int] = None, rpc: RPC = Depends(get_rpc)):
+#     return rpc._rpc_analysed_dataframe(pair, timeframe, limit)
+
+
+# @router.get('/pair_history', response_model=PairHistory, tags=['candle data'])
+# def pair_history(pair: str, timeframe: str, timerange: str, strategy: str,
+#                  config=Depends(get_config), exchange=Depends(get_exchange)):
+#     # The initial call to this endpoint can be slow, as it may need to initialize
+#     # the exchange class.
+#     config = deepcopy(config)
+#     config.update({
+#         'strategy': strategy,
+#     })
+#     return RPC._rpc_analysed_history_full(config, pair, timeframe, timerange, exchange)
+
+
+# @router.get('/plot_config', response_model=PlotConfig, tags=['candle data'])
+# def plot_config(rpc: RPC = Depends(get_rpc)):
+#     return PlotConfig.parse_obj(rpc._rpc_plot_config())
+
+
+# change response models of the following two
+@router.get('/strategies')  # , response_model=StrategyListResponse, tags=['strategy'])
+def list_strategies():
+    return RPC._rpc_list_strategies()
+
+
+@router.get('/strategy/{strategy}')  # , response_model=StrategyResponse, tags=['strategy'])
+def get_strategy(strategy: str):
+    return RPC._rpc_get_strategy()
+
+
+# @router.get('/available_pairs', response_model=AvailablePairs, tags=['candle data'])
+# def list_available_pairs(timeframe: Optional[str] = None, stake_currency: Optional[str] = None,
+#                          candletype: Optional[CandleType] = None, config=Depends(get_config)):
+
+#     dh = get_datahandler(config['datadir'], config.get('dataformat_ohlcv'))
+#     trading_mode: TradingMode = config.get('trading_mode', TradingMode.SPOT)
+#     pair_interval = dh.ohlcv_get_available_data(config['datadir'], trading_mode)
+
+#     if timeframe:
+#         pair_interval = [pair for pair in pair_interval if pair[1] == timeframe]
+#     if stake_currency:
+#         pair_interval = [pair for pair in pair_interval if pair[0].endswith(stake_currency)]
+#     if candletype:
+#         pair_interval = [pair for pair in pair_interval if pair[2] == candletype]
+#     else:
+#         candle_type = CandleType.get_default(trading_mode)
+#         pair_interval = [pair for pair in pair_interval if pair[2] == candle_type]
+
+#     pair_interval = sorted(pair_interval, key=lambda x: x[0])
+
+#     pairs = list({x[0] for x in pair_interval})
+#     pairs.sort()
+#     result = {
+#         'length': len(pairs),
+#         'pairs': pairs,
+#         'pair_interval': pair_interval,
+#     }
+#     return result
 
 
 @router.get('/sysinfo', response_model=SysInfo, tags=['info'])
-def sysinfo():
-    return RPC._rpc_sysinfo()
+def sysinfo(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.sysinfo(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/health', response_model=Health, tags=['info'])
-def health(rpc: RPC = Depends(get_rpc)):
-    return rpc._health()
+def health(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.health(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/state', response_model=State, tags=['info'])
-def state(rpc: RPC = Depends(get_rpc)):
+def state(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.state(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
+
+
+@router.get('/controller_sysinfo', response_model=SysInfo, tags=['info'])
+def controller_sysinfo():
+    return RPC._rpc_sysinfo()
+
+
+@router.get('/controller_health', response_model=Health, tags=['info'])
+def controller_health(rpc: RPC = Depends(get_rpc)):
+    return rpc._health()
+
+
+@router.get('/controller_state', response_model=State, tags=['info'])
+def controller_state(rpc: RPC = Depends(get_rpc)):
     return rpc._state()
 
 
@@ -343,24 +402,62 @@ def list_exchanges():
     }
 
 
-@router.post('/exchange', response_model=StatusMsg, tags=['botcontrol', 'setup'])
-def update_exchange(payload: UpdateExchangePayload, rpc: RPC = Depends(get_rpc)):
+@router.post('/exchange', response_model=StatusMsg, tags=['bot control', 'setup'])
+def update_exchange(payload: UpdateExchangePayload,
+                    bot=Depends(get_bot),
+                    client=Depends(get_client)):
     kwargs = payload.dict(exclude_none=True)
-    return rpc._rpc_update_exchange(**kwargs)
+    try:
+        return client.update_exchange(bot.bot_id, **kwargs)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
-@router.post('/strategy', response_model=StatusMsg, tags=['botcontrol', 'setup'])
-def update_strategy(payload: UpdateStrategyPayload, rpc: RPC = Depends(get_rpc)):
+@router.post('/strategy', response_model=StatusMsg, tags=['bot control', 'setup'])
+def update_strategy(payload: UpdateStrategyPayload,
+                    bot=Depends(get_bot),
+                    client=Depends(get_client)):
     kwargs = payload.dict(exclude_none=True)
-    return rpc._rpc_update_strategy(**kwargs)
+    try:
+        return client.update_strategy(bot.bot_id, **kwargs)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
-@router.post('/settings', response_model=StatusMsg, tags=['botcontrol', 'setup'])
-def update_general_settings(payload: UpdateSettingsPayload, rpc: RPC = Depends(get_rpc)):
+@router.post('/settings', response_model=StatusMsg, tags=['bot control', 'setup'])
+def update_general_settings(payload: UpdateSettingsPayload,
+                            bot=Depends(get_bot),
+                            client=Depends(get_client)):
     kwargs = payload.dict(exclude_none=True)
-    return rpc._rpc_update_general_settings(**kwargs)
+    try:
+        return client.update_settings(bot.bot_id, **kwargs)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
 
 
-@router.post('/reset_original_config', response_model=StatusMsg, tags=['botcontrol'])
-def reset_original_config(rpc: RPC = Depends(get_rpc)):
-    return rpc._rpc_reset_original_config()
+@router.post('/reset_original_config', response_model=StatusMsg, tags=['bot control'])
+def reset_original_config(bot=Depends(get_bot), client=Depends(get_client)):
+    try:
+        return client.reset_original_config(bot.bot_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
+
+
+@router.post('/create_bot', tags=['bot control'])
+def create_bot(user=Depends(get_user), rpc=Depends(get_rpc)):
+    return rpc._create_bot(user.id)
+
+
+@router.post('/activate_bot', response_model=StatusMsg, tags=['bot control'])
+def activate_bot(bot=Depends(get_bot), rpc=Depends(get_rpc)):
+    return rpc._activate_bot(bot.id)
+
+
+@router.post('/deactivate_bot', response_model=StatusMsg, tags=['bot control'])
+def deactivate_bot(bot=Depends(get_bot), rpc=Depends(get_rpc)):
+    return rpc._deactivate_bot(bot.id)
+
+
+@router.post('/delete_bot', response_model=StatusMsg, tags=['bot control'])
+def delete_bot(bot=Depends(get_bot), rpc=Depends(get_rpc)):
+    return rpc._delete_bot(bot.id)

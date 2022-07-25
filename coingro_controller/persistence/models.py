@@ -16,6 +16,7 @@ from coingro.persistence.models import create_db, ping_connection
 
 from coingro_controller.persistence.base import _DECL_BASE
 from coingro_controller.persistence.bot import Bot
+from coingro_controller.persistence.strategy import Strategy
 from coingro_controller.persistence.user import User
 
 
@@ -64,7 +65,7 @@ def init_db(db_url: str) -> None:
     User._session = scoped_session(sessionmaker(bind=engine, autoflush=True))
     User.query = User._session.query_property()
     Bot.query = User._session.query_property()
-    # Strategy.query = User._session.query_property()
+    Strategy.query = User._session.query_property()
 
     previous_tables = inspect(engine).get_table_names()
     _DECL_BASE.metadata.create_all(engine)

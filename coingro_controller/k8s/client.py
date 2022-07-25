@@ -9,6 +9,10 @@ from coingro.misc import retrier
 from coingro_controller.constants import DEFAULT_NAMESPACE
 from coingro_controller.k8s.resources import Resources
 from coingro_controller.misc import generate_uid
+from coingro_controller.persistence import Bot
+
+
+logger = logging.getLogger(__name__)
 
 
 class Client:
@@ -21,8 +25,6 @@ class Client:
 		self.core_api = client.CoreV1Api()
 
 		self._init_namespace()
-
-	def
 
 	@retrier(retries=3, sleep_time=10)
 	def _init_namespace(self):
@@ -44,12 +46,11 @@ class Client:
 		items = res['items'] if 'items' in res else []
 		return items
 
-	def create_coingro_instance(self, name: Optional[str] = None) -> Dict[str, Any]:
-		if not name:
-			uid = generate_uid()
-			name = f'coingro-bot-{uid}'
+	def create_coingro_instance(self,
+								name: str,
+								env_vars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
 		_ = self._create_coingro_service(name)
-		cg_pod = self._create_coingro_pod(name)
+		cg_pod = self._create_coingro_pod(name, env_vars)
 		return cg_pod
 
 	@retrier(retries=3, sleep_time=1)
@@ -61,24 +62,26 @@ class Client:
 			raise TemporaryError(e)
 
 	@retrier(retries=3, sleep_time=1)
-	def _create_coingro_pod(self, name: str) -> Dict[str, Any]:
-		cg_pod = self.resources.get_coingro_pod(name)
+	def _create_coingro_pod(self,
+							name: str,
+							env_vars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+		cg_pod = self.resources.get_coingro_pod(name, env_vars)
 		try:
 			return self.core_api.create_namespaced_pod(self.namespace, cg_pod)
 		except Exception as e: # Get specific exceptions
 			raise TemporaryError(e)
 
-	def update_coingro_instance(self, name: str) -> Dict[str, Any]:
-		cg_pod = self._update_coingro_pod(name)
-		return cg_pod
+	# def update_coingro_instance(self, name: str) -> Dict[str, Any]:
+	# 	cg_pod = self._update_coingro_pod(name)
+	# 	return cg_pod
 
-	@retrier(retries=3, sleep_time=1)
-	def _update_coingro_pod(self, name: str) -> Dict[str, Any]:
-		cg_pod = self.resources.get_coingro_pod(name)
-		try:
-			return self.core_api.replace_namespaced_pod(name, self.namespace, cg_pod)
-		except Exception as e: # Get specific exceptions
-			raise TemporaryError(e)
+	# @retrier(retries=3, sleep_time=1)
+	# def _update_coingro_pod(self, name: str) -> Dict[str, Any]:
+	# 	cg_pod = self.resources.get_coingro_pod(name)
+	# 	try:
+	# 		return self.core_api.replace_namespaced_pod(name, self.namespace, cg_pod)
+	# 	except Exception as e: # Get specific exceptions
+	# 		raise TemporaryError(e)
 
 	def delete_coingro_instance(self, name: str) -> Dict[str, Any]:
 		cg_pod = self._delete_coingro_pod(name)

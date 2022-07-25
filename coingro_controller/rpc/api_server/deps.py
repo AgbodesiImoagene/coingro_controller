@@ -1,6 +1,6 @@
 from typing import Any, Dict, Iterator, Optional
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, status
 
 from coingro.enums import RunMode
 from coingro.rpc.rpc import RPCException
@@ -10,6 +10,9 @@ from coingro_controller.persistence import Bot, User
 from coingro_controller.rpc.rpc import RPC
 from coingro_controller.rpc.api_server.webserver import ApiServer
 from coingro_controller.rpc.client import CoingroClient
+
+
+logger = logging.getLogger(__name__)
 
 def get_rpc_optional() -> Optional[RPC]:
     if ApiServer._has_rpc:
@@ -27,8 +30,8 @@ def get_rpc() -> Optional[Iterator[RPC]]:
         raise RPCException('Controller is not in the correct state')
 
 
-def get_client() -> CoingroClient:
-    return ApiServer._client
+def get_client(rpc=Depends(get_rpc)) -> CoingroClient:
+    return rpc._client
 
 
 def get_config() -> Dict[str, Any]:
@@ -53,7 +56,7 @@ def get_bot(bot_id: str, user: User = Depends(get_user)) -> Bot:
             detail="Bot not found."
         )
 
-    if (user.role == Role.USER) and (bot.user_id != user.id):
+    if (user.role == Role.USER) and (bot.user != user):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized."
@@ -61,8 +64,7 @@ def get_bot(bot_id: str, user: User = Depends(get_user)) -> Bot:
 
     return bot
 
-def get_user(req: Request) -> User:
-    user_id = req.headers.get("Authorization", '')
+def get_user(user_id: Optional[str] = Header(None)) -> User:
     user = User.user_by_id(user_id)
     if not user:
         raise HTTPException(

@@ -15,6 +15,10 @@ from requests.exceptions import ConnectionError
 from coingro.exceptions import TemporaryError
 from coingro.misc import retrier
 
+
+logger = logging.getLogger(__name__)
+
+
 class CoingroClient:
     def __init__(self, config: Dict[str, Any]):
         self._session = requests.Session()
@@ -109,13 +113,17 @@ class CoingroClient:
         """
         return self._get(serverurl, "locks")
 
-    def delete_lock(self, serverurl, lock_id):
+    def delete_lock(self, serverurl, lock_id, pair=None):
         """Delete (disable) lock from the database.
 
         :param lock_id: ID for the lock to delete
         :return: json object
         """
-        return self._delete(serverurl, f"locks/{lock_id}")
+        if pair:
+            data={'lockid': lock_id, 'pair': pair}
+            return self._post(serverurl, f"locks/delete", data=data)
+        else:
+            return self._delete(serverurl, f"locks/{lock_id}")
 
     def daily(self, serverurl, days=None):
         """Return the profits for each day, and amount of trades.
@@ -203,7 +211,7 @@ class CoingroClient:
             params['limit'] = limit
         if offset:
             params['offset'] = offset
-        return self._get(serverurl, "trades", params)
+        return self._get(serverurl, "trades", params=params)
 
     def trade(self, serverurl, trade_id):
         """Return specific trade
@@ -240,40 +248,54 @@ class CoingroClient:
         else:
             return self._post(serverurl, "blacklist", data={"blacklist": args})
 
-    def forcebuy(self, serverurl, pair, price=None):
+    def delete_blacklist(self, serverurl, pairs):
+        """Show the current blacklist.
+
+        :param add: List of coins to add (example: "BNB/BTC")
+        :return: json object
+        """
+        params = {}
+        params['pairs_to_delete'] = pairs
+        return self._delete(serverurl, "blacklist", params=params)
+
+    def forceenter(self,
+                   serverurl,
+                   pair,
+                   side=None,
+                   price=None,
+                   ordertype=None,
+                   stakeamount=None,
+                   entry_tag=None):
         """Buy an asset.
 
         :param pair: Pair to buy (ETH/BTC)
+        :param side: Optional - 'long' or 'short'
         :param price: Optional - price to buy
+        :param ordertype: Optional - 'limit' or 'market'
+        :param stakeamount: Optional - lot size
+        :param entry_tag: Optional - string label of entry reason
         :return: json object of the trade
         """
         data = {"pair": pair,
-                "price": price
+                "price": price,
+                "side": side,
+                "ordertype": ordertype,
+                "stakeamount": stakeamount,
+                "entry_tag": entry_tag
                 }
         return self._post(serverurl, "forcebuy", data=data)
 
-    def forceenter(self, serverurl, pair, side, price=None):
-        """Force entering a trade
-
-        :param pair: Pair to buy (ETH/BTC)
-        :param side: 'long' or 'short'
-        :param price: Optional - price to buy
-        :return: json object of the trade
-        """
-        data = {"pair": pair,
-                "side": side,
-                "price": price,
-                }
-        return self._post(serverurl, "forceenter", data=data)
-
-    def forceexit(self, serverurl, tradeid):
+    def forceexit(self, serverurl, tradeid, ordertype=None):
         """Force-exit a trade.
 
         :param tradeid: Id of the trade (can be received via status command)
+        :param ordertype: Optional - 'limit' or 'market'
         :return: json object
         """
-
-        return self._post(serverurl, "forceexit", data={"tradeid": tradeid})
+        data = {"tradeid": tradeid,
+                "ordertype": ordertype
+                }
+        return self._post(serverurl, "forceexit", data=data)
 
     def strategies(self, serverurl):
         """Lists available strategies
@@ -415,11 +437,9 @@ class CoingroClient:
         :param trailing_only_offset_is_reached: Should the positive offset be used.
         :return: json object
         """
-        minimal_roi_list = [{"time_limit_mins": int(mins), "profit": roi}
-                            for mins, roi in minimal_roi] if minimal_roi else None
         return self._post(serverurl, "strategy", data={
             "strategy": strategy,
-            "minimal_roi": minimal_roi_list,
+            "minimal_roi": minimal_roi,
             "stoploss": stoploss,
             "trailing_stop": trailing_stop,
             "trailing_stop_positive": trailing_stop_positive,
@@ -464,6 +484,17 @@ class CoingroClient:
 
         :return: json object
         """
-        return self._post("reset_original_config")
+        return self._post(serverurl, "reset_original_config")
 
+    def timeunit_profit(self, serverurl, timeunit=None, timescale=1):
+        """Return the profits for a time frame, and amount of trades.
+
+        :return: json object
+        """
+        if timeunit not in ['weeks', 'months']:
+            timeunit = 'days'
+        return self._get(serverurl, "timeunit_profit", params={
+                'timeunit': timeunit,
+                'timescale': timescale,
+            })
 

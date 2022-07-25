@@ -5,6 +5,9 @@ from kubernetes import client
 from coingro_controller.constants import DEFAULT_NAMESPACE
 
 
+logger = logging.getLogger(__name__)
+
+
 class Resources:
 	def __init__(self, config: Dict[str, Any]):
 		self._config = config
@@ -29,6 +32,7 @@ class Resources:
 		meta.labels = {
 			'name': name,
 			'run': name,
+			'app': 'coingro-bot',
 			'creator': 'coingro-controller'
 		}
 
@@ -53,8 +57,10 @@ class Resources:
 
 		return cg_service
 
-	def get_coingro_pod(name: str) -> client.V1Pod:
+	def get_coingro_pod(name: str, env_vars: Optional[Dict[str, Any]] = None) -> client.V1Pod:
 		env = self._config.get('cg_env_vars', {})
+		if env_vars:
+			env.update(env_vars)
 		env_list = []
 
 		if env:

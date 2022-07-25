@@ -1,13 +1,16 @@
 
 # --- Do not remove these libs ---
+from datetime import datetime
+
+import coingro.vendor.qtpylib.indicators as qtpylib
+import talib.abstract as ta
+from coingro.persistence import Trade
 from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
 from pandas import DataFrame
+
+
 # --------------------------------
 
-import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
 
 class Strategy001_custom_sell(IStrategy):
 
@@ -88,7 +91,7 @@ class Strategy001_custom_sell(IStrategy):
         dataframe['ha_close'] = heikinashi['close']
 
         dataframe['rsi'] = ta.RSI(dataframe, 14)
-        
+
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -122,20 +125,25 @@ class Strategy001_custom_sell(IStrategy):
             'sell'] = 1
         return dataframe
 
-    def custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float, current_profit: float, **kwargs):
+    def custom_sell(self,
+                    pair: str,
+                    trade: Trade,
+                    current_time: datetime,
+                    current_rate: float,
+                    current_profit: float, **kwargs):
         """
         Sell only when matching some criteria other than those used to generate the sell signal
         :return: str sell_reason, if any, otherwise None
         """
         # get dataframe
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
-        
+
         # get the current candle
         current_candle = dataframe.iloc[-1].squeeze()
-        
+
         # if RSI greater than 70 and profit is positive, then sell
         if (current_candle['rsi'] > 70) and (current_profit > 0):
             return "rsi_profit_sell"
-        
+
         # else, hold
         return None

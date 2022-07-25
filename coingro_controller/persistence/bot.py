@@ -2,16 +2,13 @@
 This module contains the class to persist trades into SQLite
 """
 import logging
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-
-from sqlalchemy import (Boolean, Column, DateTime, Enum, Float, ForeignKey, BigInteger, String,
-                        UniqueConstraint, desc, func)
-from sqlalchemy.orm import lazyload, relationship
 
 from coingro.constants import DATETIME_PRINT_FORMAT
 from coingro.enums import State
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, ForeignKey, String
+from sqlalchemy.orm import relationship
 
 from coingro_controller.persistence.base import _DECL_BASE
 
@@ -31,7 +28,7 @@ class Bot(_DECL_BASE):
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, index=True)
     user = relationship("User", back_populates="bots")
     strategy_stats = relationship("Strategy", cascade="all, delete-orphan",
-        lazy="joined", back_populates="bots")
+                                  lazy="joined", back_populates="bots")
 
     image = Column(String(255), nullable=False)
     version = Column(String(100), nullable=False)
@@ -55,15 +52,16 @@ class Bot(_DECL_BASE):
         """ Last update date with UTC timezoneinfo"""
         if self.updated_at:
             return self.updated_at.replace(tzinfo=timezone.utc)
+        return None
 
     @property
     def deleted_at_utc(self) -> Optional[datetime]:
         """ Deletion date with UTC timezoneinfo"""
         if self.deleted_at:
             return self.deleted_at.replace(tzinfo=timezone.utc)
+        return None
 
     def __repr__(self):
-
         return (f'Bot(id={self.id}, cg_bot_id={self.bot_id}, user_id={self.user_id})')
 
     def to_json(self, minified: bool = False) -> Dict[str, Any]:
@@ -79,10 +77,10 @@ class Bot(_DECL_BASE):
                 'strategy': self.strategy,
                 'exchange': self.exchange,
                 'created_at': self.created_at.strftime(DATETIME_PRINT_FORMAT),
-                'updated_at': self.updated_at.strftime(DATETIME_PRINT_FORMAT) \
-                    if self.updated_at else None,
-                'deleted_at': self.deleted_at.strftime(DATETIME_PRINT_FORMAT) \
-                    if self.deleted_at else None,
+                'updated_at': self.updated_at.strftime(DATETIME_PRINT_FORMAT)
+                if self.updated_at else None,
+                'deleted_at': self.deleted_at.strftime(DATETIME_PRINT_FORMAT)
+                if self.deleted_at else None,
             })
         return resp
 

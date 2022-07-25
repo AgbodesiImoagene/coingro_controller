@@ -1,23 +1,17 @@
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
-# --------------------------------
-import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame, DatetimeIndex, merge
-# --------------------------------
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
 import numpy  # noqa
+# --------------------------------
+# --------------------------------
+import talib.abstract as ta
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
 
 
 class SmoothScalp(IStrategy):
     """
-        this strategy is based around the idea of generating a lot of potentatils buys and make tiny profits on each trade
+        this strategy is based around the idea of generating a lot of potential buys and making
+        tiny profits on each trade
 
         we recommend to have at least 60 parallel trades at any time to cover non avoidable losses
     """
@@ -73,12 +67,9 @@ class SmoothScalp(IStrategy):
                                 (dataframe['fastk'] < 30) &
                                 (dataframe['fastd'] < 30) &
                                 (qtpylib.crossed_above(dataframe['fastk'], dataframe['fastd']))
-                        ) &
-                        (dataframe['cci'] < -150)
+                        ) & (dataframe['cci'] < -150)
                 )
-
-            ),
-            'buy'] = 1
+            ), 'buy'] = 1
         return dataframe
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -95,7 +86,5 @@ class SmoothScalp(IStrategy):
 
                             )
                     ) & (dataframe['cci'] > 150)
-            )
-            ,
-            'sell'] = 1
+            ), 'sell'] = 1
         return dataframe

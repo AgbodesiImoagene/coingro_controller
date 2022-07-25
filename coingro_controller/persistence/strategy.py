@@ -2,16 +2,12 @@
 This module contains the class to persist trades into SQLite
 """
 import logging
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import (Boolean, Column, DateTime, Enum, Float, ForeignKey, BigInteger, Integer, String,
-                        UniqueConstraint, Interval, Text, desc, func)
-from sqlalchemy.orm import lazyload, relationship
-
 from coingro.constants import DATETIME_PRINT_FORMAT
-from coingro.enums import State
+from sqlalchemy import (BigInteger, Column, DateTime, Float, ForeignKey, Integer, Interval, String,
+                        Text)
+from sqlalchemy.orm import relationship
 
 from coingro_controller.persistence.base import _DECL_BASE
 from coingro_controller.persistence.bot import Bot
@@ -49,8 +45,8 @@ class Strategy(_DECL_BASE):
     profit_ratio_sum = Column(Float, default=0.0)
     profit_ratio = Column(Float, default=0.0)
     trade_count = Column(Integer, default=0)
-    first_trade_timestamp = Column(DateTime)
-    latest_trade_timestamp = Column(DateTime)
+    first_trade = Column(DateTime)
+    latest_trade = Column(DateTime)
     avg_duration = Column(Interval)
     winning_trades = Column(Integer)
     losing_trades = Column(Integer)
@@ -73,8 +69,8 @@ class Strategy(_DECL_BASE):
             'weekly_trade_count': self.weekly_trade_count,
             'monthly_profit': self.monthly_profit,
             'monthly_trade_count': self.monthly_trade_count,
-            'latest_refresh': self.latest_refresh.strftime(DATETIME_PRINT_FORMAT) \
-                if self.latest_refresh else None,
+            'latest_refresh': self.latest_refresh.strftime(DATETIME_PRINT_FORMAT)
+            if self.latest_refresh else None,
         }
         if not minified:
             resp.update({
@@ -83,10 +79,10 @@ class Strategy(_DECL_BASE):
                 'profit_ratio_sum': self.profit_ratio_sum,
                 'profit_ratio': self.profit_ratio,
                 'trade_count': self.trade_count,
-                'first_trade_timestamp': self.first_trade_timestamp.\
-                    strftime(DATETIME_PRINT_FORMAT) if self.first_trade_timestamp else None,
-                'latest_trade_timestamp': self.latest_trade_timestamp.\
-                    strftime(DATETIME_PRINT_FORMAT) if self.latest_trade_timestamp else None,
+                'first_trade': self.first_trade.strftime(DATETIME_PRINT_FORMAT)
+                if self.first_trade else None,
+                'latest_trade': self.latest_trade.strftime(DATETIME_PRINT_FORMAT)
+                if self.latest_trade else None,
                 'avg_duration': self.avg_duration,
                 'winning_trades': self.winning_trades,
                 'losing_trades': self.losing_trades,

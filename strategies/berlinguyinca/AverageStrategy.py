@@ -1,12 +1,11 @@
 # --- Do not remove these libs ---
-from functools import reduce
-from coingro.strategy import IStrategy
-from coingro.strategy import CategoricalParameter, DecimalParameter, IntParameter
-from pandas import DataFrame
-# --------------------------------
-
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
+import talib.abstract as ta
+from coingro.strategy import IntParameter, IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
 
 
 class AverageStrategy(IStrategy):
@@ -15,7 +14,8 @@ class AverageStrategy(IStrategy):
     author@: Gert Wohlgemuth
 
     idea:
-        buys and sells on crossovers - doesn't really perfom that well and its just a proof of concept
+        buys and sells on crossovers - doesn't really perfom that well and its just a proof of
+        concept
     """
 
     # Minimal ROI designed for the strategy.

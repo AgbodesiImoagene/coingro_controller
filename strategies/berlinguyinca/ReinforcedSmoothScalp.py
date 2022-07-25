@@ -1,19 +1,19 @@
 # --- Do not remove these libs ---
 from functools import reduce
-from coingro.strategy import IStrategy
-from coingro.strategy import timeframe_to_minutes
-from coingro.strategy import BooleanParameter, IntParameter
-from pandas import DataFrame
-from technical.util import resample_to_interval, resampled_merge
+
+import coingro.vendor.qtpylib.indicators as qtpylib
 import numpy  # noqa
 # --------------------------------
 import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy import BooleanParameter, IntParameter, IStrategy, timeframe_to_minutes
+from pandas import DataFrame
+from technical.util import resample_to_interval, resampled_merge
 
 
 class ReinforcedSmoothScalp(IStrategy):
     """
-        this strategy is based around the idea of generating a lot of potentatils buys and make tiny profits on each trade
+        this strategy is based around the idea of generating a lot of potentatils buys and make
+        tiny profits on each trade
 
         we recommend to have at least 60 parallel trades at any time to cover non avoidable losses
     """

@@ -1,13 +1,11 @@
 
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
-# --------------------------------
-
 import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
 
 
 class ASDTSRockwellTrading(IStrategy):
@@ -27,7 +25,8 @@ class ASDTSRockwellTrading(IStrategy):
         sell definition:
             MACD below MACD signal
 
-    it's basically a very simple MACD based strategy and we ignore the definition of the entry and exit points in this case, since the trading bot, will take of this already
+    it's basically a very simple MACD based strategy and we ignore the definition of the entry and
+    exit points in this case, since the trading bot, will take of this already
 
     """
 

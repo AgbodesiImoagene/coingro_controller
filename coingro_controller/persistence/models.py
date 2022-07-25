@@ -2,17 +2,13 @@
 This module contains the class to persist trades into SQLite
 """
 import logging
-import random
-import time
 
-from sqlalchemy import create_engine, event, inspect, select
+from coingro.exceptions import OperationalException
+from coingro.persistence.models import create_db, ping_connection
+from sqlalchemy import create_engine, event
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import StaticPool
-
-from coingro.exceptions import OperationalException
-from coingro.persistence.migrations import check_migrate
-from coingro.persistence.models import create_db, ping_connection
 
 from coingro_controller.persistence.base import _DECL_BASE
 from coingro_controller.persistence.bot import Bot
@@ -67,9 +63,7 @@ def init_db(db_url: str) -> None:
     Bot.query = User._session.query_property()
     Strategy.query = User._session.query_property()
 
-    previous_tables = inspect(engine).get_table_names()
     _DECL_BASE.metadata.create_all(engine)
-    # check_migrate(engine, decl_base=_DECL_BASE, previous_tables=previous_tables)
 
 
 def cleanup_db() -> None:

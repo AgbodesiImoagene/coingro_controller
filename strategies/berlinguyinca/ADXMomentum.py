@@ -1,7 +1,7 @@
 # --- Do not remove these libs ---
+import talib.abstract as ta
 from coingro.strategy.interface import IStrategy
 from pandas import DataFrame
-import talib.abstract as ta
 
 
 # --------------------------------

@@ -33,7 +33,7 @@ CONTROLLER_CONF_SCHEMA = {
                     'minimum': 1024,
                     'maximum': 65535
                 },
-            }
+            },
             'required': ['name', 'tag']
         },
         'cg_image_pull_secrets': {'type': 'array', 'items': {'type': 'string'}},

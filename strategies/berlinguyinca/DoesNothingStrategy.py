@@ -1,6 +1,8 @@
 # --- Do not remove these libs ---
 from coingro.strategy.interface import IStrategy
 from pandas import DataFrame
+
+
 # --------------------------------
 
 

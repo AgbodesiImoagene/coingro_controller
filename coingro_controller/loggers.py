@@ -1,7 +1,6 @@
 import logging
-import sys
 from logging import Formatter
-from logging.handlers import BufferingHandler, RotatingFileHandler, SysLogHandler
+from logging.handlers import RotatingFileHandler, SysLogHandler
 from typing import Any, Dict
 
 from coingro.constants import USERPATH_LOGS
@@ -92,7 +91,8 @@ def setup_logging(config: Dict[str, Any]) -> None:
         else:
             import coingro_controller
             if logfile == 'default' or coingro_controller.__env__ == 'kubernetes':
-                logfile = f'{config["user_data_dir"]}/{USERPATH_LOGS}/{coingro_controller.__id__}.log'
+                logfile = f'{config["user_data_dir"]}/' + \
+                          f'{USERPATH_LOGS}/{coingro_controller.__id__}.log'
             handler_rf = get_existing_handlers(RotatingFileHandler)
             if handler_rf:
                 logging.root.removeHandler(handler_rf)

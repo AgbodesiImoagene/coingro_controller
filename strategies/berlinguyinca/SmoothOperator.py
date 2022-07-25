@@ -1,13 +1,13 @@
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
-# --------------------------------
-
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
 import numpy  # noqa
+import talib.abstract as ta
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
+
 
 # DO NOT USE, just playing with smooting and graphs!
 
@@ -19,7 +19,8 @@ class SmoothOperator(IStrategy):
 
     idea:
 
-    The concept is about combining several common indicators, with a heavily smoothing, while trying to detect
+    The concept is about combining several common indicators, with a heavily smoothing,
+    while trying to detect
     a none completed peak shape.
     """
 
@@ -83,18 +84,21 @@ class SmoothOperator(IStrategy):
 
         ##################################################################################
         # rsi and mfi are slightly weighted
-        dataframe['mfi_rsi_cci_smooth'] = (dataframe['rsi_smooth'] * 1.125 + dataframe['mfi_smooth'] * 1.125 +
+        dataframe['mfi_rsi_cci_smooth'] = (dataframe['rsi_smooth'] * 1.125 +
+                                           dataframe['mfi_smooth'] * 1.125 +
                                            dataframe[
                                                'cci_smooth']) / 3
 
-        dataframe['mfi_rsi_cci_smooth'] = ta.TEMA(dataframe, timeperiod=21, price='mfi_rsi_cci_smooth')
+        dataframe['mfi_rsi_cci_smooth'] = ta.TEMA(dataframe, timeperiod=21,
+                                                  price='mfi_rsi_cci_smooth')
 
         # playgound
         dataframe['candle_size'] = (dataframe['close'] - dataframe['open']) * (
                 dataframe['close'] - dataframe['open']) / 2
 
         # helps with pattern recognition
-        dataframe['average'] = (dataframe['close'] + dataframe['open'] + dataframe['high'] + dataframe['low']) / 4
+        dataframe['average'] = (dataframe['close'] + dataframe['open'] + dataframe['high'] +
+                                dataframe['low']) / 4
         dataframe['sma_slow'] = ta.SMA(dataframe, timeperiod=200, price='close')
         dataframe['sma_medium'] = ta.SMA(dataframe, timeperiod=100, price='close')
         dataframe['sma_fast'] = ta.SMA(dataframe, timeperiod=50, price='close')
@@ -106,7 +110,8 @@ class SmoothOperator(IStrategy):
             (
 
                 # protection against pump and dump
-                #     (dataframe['volume'] < (dataframe['volume'].rolling(window=30).mean().shift(1) * 20))
+                #     (dataframe['volume'] < (dataframe['volume'].rolling(window=30).mean()\
+                #      .shift(1) * 20))
                 #
                 #     & (dataframe['macd'] < dataframe['macdsignal'])
                 #     & (dataframe['macd'] > 0)
@@ -180,9 +185,12 @@ class SmoothOperator(IStrategy):
                     #   the top of the peak
                     (
                         (dataframe['mfi_rsi_cci_smooth'] > 100)
-                        & (dataframe['mfi_rsi_cci_smooth'].shift(1) > dataframe['mfi_rsi_cci_smooth'])
-                        & (dataframe['mfi_rsi_cci_smooth'].shift(2) < dataframe['mfi_rsi_cci_smooth'].shift(1))
-                        & (dataframe['mfi_rsi_cci_smooth'].shift(3) < dataframe['mfi_rsi_cci_smooth'].shift(2))
+                        & (dataframe['mfi_rsi_cci_smooth'].shift(1) >
+                            dataframe['mfi_rsi_cci_smooth'])
+                        & (dataframe['mfi_rsi_cci_smooth'].shift(2) <
+                            dataframe['mfi_rsi_cci_smooth'].shift(1))
+                        & (dataframe['mfi_rsi_cci_smooth'].shift(3) <
+                            dataframe['mfi_rsi_cci_smooth'].shift(2))
                     )
                     |
                     #   This helps with very long, sideways trends, to get out of a market before

@@ -1,20 +1,15 @@
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
-# --------------------------------
-
-import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame, DatetimeIndex, merge
-# --------------------------------
-
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
 import numpy  # noqa
+import talib.abstract as ta
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame, DatetimeIndex, merge
+
+
+# --------------------------------
+
+# --------------------------------
+
 
 class ReinforcedQuickie(IStrategy):
     """
@@ -77,7 +72,8 @@ class ReinforcedQuickie(IStrategy):
         dataframe['mfi'] = ta.MFI(dataframe)
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=7)
 
-        dataframe['average'] = (dataframe['close'] + dataframe['open'] + dataframe['high'] + dataframe['low']) / 4
+        dataframe['average'] = (dataframe['close'] + dataframe['open'] + dataframe['high'] +
+                                dataframe['low']) / 4
 
         ##################################################################################
         # required for graphing
@@ -103,8 +99,10 @@ class ReinforcedQuickie(IStrategy):
             (
                     (
                             (
-                                    (dataframe['close'] < dataframe['ema_{}'.format(self.EMA_SHORT_TERM)]) &
-                                    (dataframe['close'] < dataframe['ema_{}'.format(self.EMA_MEDIUM_TERM)]) &
+                                    (dataframe['close'] <
+                                        dataframe['ema_{}'.format(self.EMA_SHORT_TERM)]) &
+                                    (dataframe['close'] <
+                                        dataframe['ema_{}'.format(self.EMA_MEDIUM_TERM)]) &
                                     (dataframe['close'] == dataframe['min']) &
                                     (dataframe['close'] <= dataframe['bb_lowerband'])
                             )
@@ -114,10 +112,14 @@ class ReinforcedQuickie(IStrategy):
                             # this pattern only catches a few, but normally very good buy points
                             (
                                     (dataframe['average'].shift(5) > dataframe['average'].shift(4))
-                                    & (dataframe['average'].shift(4) > dataframe['average'].shift(3))
-                                    & (dataframe['average'].shift(3) > dataframe['average'].shift(2))
-                                    & (dataframe['average'].shift(2) > dataframe['average'].shift(1))
-                                    & (dataframe['average'].shift(1) < dataframe['average'].shift(0))
+                                    & (dataframe['average'].shift(4) >
+                                        dataframe['average'].shift(3))
+                                    & (dataframe['average'].shift(3) >
+                                        dataframe['average'].shift(2))
+                                    & (dataframe['average'].shift(2) >
+                                        dataframe['average'].shift(1))
+                                    & (dataframe['average'].shift(1) <
+                                        dataframe['average'].shift(0))
                                     & (dataframe['low'].shift(1) < dataframe['bb_middleband'])
                                     & (dataframe['cci'].shift(1) < -100)
                                     & (dataframe['rsi'].shift(1) < 30)
@@ -128,13 +130,12 @@ class ReinforcedQuickie(IStrategy):
                     # safeguard against down trending markets and a pump and dump
                     &
                     (
-                            (dataframe['volume'] < (dataframe['volume'].rolling(window=30).mean().shift(1) * 20)) &
+                            (dataframe['volume'] <
+                                (dataframe['volume'].rolling(window=30).mean().shift(1) * 20)) &
                             (dataframe['resample_sma'] < dataframe['close']) &
                             (dataframe['resample_sma'].shift(1) < dataframe['resample_sma'])
                     )
-            )
-            ,
-            'buy'] = 1
+            ), 'buy'] = 1
 
         return dataframe
 
@@ -165,9 +166,7 @@ class ReinforcedQuickie(IStrategy):
                     (dataframe['open'].shift(6) < dataframe['close'].shift(6)) &
                     (dataframe['open'].shift(7) < dataframe['close'].shift(7)) &
                     (dataframe['rsi'] > 70)
-            )
-            ,
-            'sell'
+            ), 'sell'
         ] = 1
         return dataframe
 

@@ -1,18 +1,19 @@
+import logging
 from typing import Any, Dict, Iterator, Optional
-
-from fastapi import Depends, Header, HTTPException, status
 
 from coingro.enums import RunMode
 from coingro.rpc.rpc import RPCException
+from fastapi import Depends, Header, HTTPException, status
 
 from coingro_controller.enums import Role
 from coingro_controller.persistence import Bot, User
-from coingro_controller.rpc.rpc import RPC
 from coingro_controller.rpc.api_server.webserver import ApiServer
 from coingro_controller.rpc.client import CoingroClient
+from coingro_controller.rpc.rpc import RPC
 
 
 logger = logging.getLogger(__name__)
+
 
 def get_rpc_optional() -> Optional[RPC]:
     if ApiServer._has_rpc:
@@ -48,6 +49,17 @@ def is_webserver_mode(config=Depends(get_config)):
     return None
 
 
+def get_user(user_id: Optional[str] = Header(None)) -> User:
+    user_id = user_id if user_id else ''
+    user = User.user_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+    return user
+
+
 def get_bot(bot_id: str, user: User = Depends(get_user)) -> Bot:
     bot = Bot.bot_by_id(bot_id)
     if (not bot) or (bot.deleted_at):
@@ -63,12 +75,3 @@ def get_bot(bot_id: str, user: User = Depends(get_user)) -> Bot:
         )
 
     return bot
-
-def get_user(user_id: Optional[str] = Header(None)) -> User:
-    user = User.user_by_id(user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
-        )
-    return user

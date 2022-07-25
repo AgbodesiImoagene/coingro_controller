@@ -1,16 +1,14 @@
 import logging
 from typing import Any, Dict
 
-import orjson
 import uvicorn
-from fastapi import Depends, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse
-
 from coingro.exceptions import OperationalException
 from coingro.rpc.api_server.uvicorn_threaded import UvicornServer
 from coingro.rpc.api_server.webserver import CGJSONResponse
 from coingro.rpc.rpc import RPCException, RPCHandler
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 
 from coingro_controller.rpc.rpc import RPC
 
@@ -102,11 +100,7 @@ class ApiServer(RPCHandler):
         )
 
     def configure_app(self, app: FastAPI, config):
-        from coingro.rpc.api_server.api_auth import http_basic_or_jwt_token, router_login
-        from coingro.rpc.api_server.api_backtest import router as api_backtest
         from coingro.rpc.api_server.api_v1 import router as api_v1
-        from coingro.rpc.api_server.api_v1 import router_public as api_v1_public
-        from coingro.rpc.api_server.web_ui import router_ui
 
         app.include_router(api_v1, prefix="/api/v1",)
 

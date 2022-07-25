@@ -1,9 +1,6 @@
 import argparse
-from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
-from coingro.constants import USERPATH_CONFIG
 
 from coingro_controller.commands.cli_options import AVAILABLE_CLI_OPTIONS
 from coingro_controller.constants import DEFAULT_CONFIG
@@ -70,18 +67,8 @@ class ControllerArguments:
         from coingro_controller.commands import start_controller
 
         # Add controller subcommand
-        start_controller_cmd = subparsers.add_parser('start-controller', help='Start coingro controller '
-            'within kubernetes cluster.')
+        start_controller_cmd = subparsers.add_parser('start-controller',
+                                                     help='Start coingro controller '
+                                                     'within kubernetes cluster.')
         start_controller_cmd.set_defaults(func=start_controller)
         self._build_args(optionlist=ARGS_COMMON, parser=start_controller_cmd)
-
-        # # Add initialisation subcommand
-        # start_init_cmd = subparsers.add_parser('init', help='Initialise kubernetes cluster environment.')
-        # start_init_cmd.set_defaults(func=start_controller)
-        # self._build_args(optionlist=ARGS_COMMON, parser=start_init_cmd)
-
-        # # Add update subcommand
-        # start_init_cmd = subparsers.add_parser('init', help='Initialise kubernetes cluster environment.')
-        # start_init_cmd.set_defaults(func=start_controller)
-        # self._build_args(optionlist=ARGS_COMMON, parser=start_init_cmd)
-

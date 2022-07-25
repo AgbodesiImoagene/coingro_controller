@@ -1,11 +1,11 @@
 
 # --- Do not remove these libs ---
-from coingro.strategy import IStrategy
-from coingro.strategy import CategoricalParameter, DecimalParameter, IntParameter
-from pandas import DataFrame
-# --------------------------------
-
 import talib.abstract as ta
+from coingro.strategy import IntParameter, IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
 
 
 class MACDStrategy(IStrategy):

@@ -1,20 +1,14 @@
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
-# --------------------------------
-
-import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame, DatetimeIndex, merge
-# --------------------------------
-
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
 import numpy  # noqa
+import talib.abstract as ta
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
+
+# --------------------------------
 
 
 class ClucMay72018(IStrategy):
@@ -63,7 +57,8 @@ class ClucMay72018(IStrategy):
             (
                     (dataframe['close'] < dataframe['ema100']) &
                     (dataframe['close'] < 0.985 * dataframe['bb_lowerband']) &
-                    (dataframe['volume'] < (dataframe['volume'].rolling(window=30).mean().shift(1) * 20))
+                    (dataframe['volume'] <
+                        (dataframe['volume'].rolling(window=30).mean().shift(1) * 20))
             ),
             'buy'] = 1
 

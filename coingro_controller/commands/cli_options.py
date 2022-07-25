@@ -1,7 +1,7 @@
 from coingro.commands.cli_options import Arg
 
 from coingro_controller import __version__
-from coingro_controller.constants import DEFAULT_CONFIG, DEFAULT_DB_URL
+from coingro_controller.constants import DEFAULT_CONFIG
 
 
 AVAILABLE_CLI_OPTIONS = {

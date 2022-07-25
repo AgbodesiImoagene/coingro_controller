@@ -2,29 +2,16 @@
 Main Coingro controller class.
 """
 import logging
-import time
-import traceback
 from datetime import datetime
-from os import getpid
-from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
-import sdnotify
-
-# from kubernetes import client, config
-
-from coingro.coingrobot import CoingroBot
-from coingro.configuration import Configuration
-from coingro.constants import (DEFAULT_CONFIG_SAVE, PROCESS_THROTTLE_SECS, RETRY_TIMEOUT,
-                               USERPATH_STRATEGIES)
 from coingro.enums import State
-from coingro.exceptions import OperationalException, TemporaryError
 from coingro.mixins import LoggingMixin
-from coingro.resolvers import StrategyResolver
 
-from coingro_controller import __env__, __version__
+from coingro_controller import __version__
 from coingro_controller.k8s import Client
-from coingro_controller.persistence import Bot, User, cleanup_db, init_db
+from coingro_controller.misc import generate_uid
+from coingro_controller.persistence import Bot, cleanup_db, init_db
 from coingro_controller.rpc import CoingroClient, RPCManager
 from coingro_controller.strategy_manager import StrategyManager
 
@@ -92,7 +79,7 @@ class Controller(LoggingMixin):
                    name: Optional[str] = None,
                    user: Optional[str] = None,
                    is_strategy: bool = False,
-                   env_vars: Optional[Dict[str, Any]] = None) -> str:
+                   env_vars: Optional[Dict[str, Any]] = None) -> Optional[str]:
         if not name:
             uid = generate_uid()
             name = f'coingro-bot-{uid}'
@@ -120,7 +107,8 @@ class Controller(LoggingMixin):
                           is_strategy=is_strategy)
             Bot.query.session.add(bot)
             Bot.commit()
-        return bot.bot_id
+
+        return bot.bot_id if bot else None
 
     def deactivate_bot(self, name: str, delete: bool = False):
         bot = Bot.bot_by_id(name)
@@ -134,8 +122,3 @@ class Controller(LoggingMixin):
             if delete:
                 bot.deleted_at = datetime.utcnow()
             Bot.commit()
-
-
-
-
-

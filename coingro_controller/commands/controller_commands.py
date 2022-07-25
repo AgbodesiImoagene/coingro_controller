@@ -19,7 +19,7 @@ def start_controller(args: Dict[str, Any]) -> int:
 
     if __env__ != 'kubernetes' or 'KUBERNETES_SERVICE_HOST' not in os.environ:
         raise OperationalException('Coingro controller must be run within a '
-            'kubernetes cluster.')
+                                   'kubernetes cluster.')
 
     # Create and run worker
     worker = None

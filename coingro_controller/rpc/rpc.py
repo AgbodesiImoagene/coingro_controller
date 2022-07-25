@@ -2,42 +2,14 @@
 This module contains class to define a RPC communications
 """
 import logging
-from abc import abstractmethod
-from copy import deepcopy
-from datetime import date, datetime, timedelta, timezone
-from math import isnan
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Union
 
-import arrow
 import psutil
-from dateutil.relativedelta import relativedelta
-from dateutil.tz import tzlocal
-from numpy import NAN, inf, int64, mean
-from pandas import DataFrame, NaT
-
-from coingro import __version__
-from coingro.configuration import Configuration, validate_config_consistency
-from coingro.configuration.check_exchange import check_exchange
-from coingro.configuration.save_config import save_to_config_file
-from coingro.configuration.timerange import TimeRange
-from coingro.constants import (CANCEL_REASON, DATETIME_PRINT_FORMAT, DEFAULT_CONFIG_SAVE,
-                               USERPATH_CONFIG)
-from coingro.data.history import load_data
-from coingro.data.metrics import calculate_max_drawdown
-from coingro.enums import CandleType, ExitCheckTuple, ExitType, SignalDirection, State, TradingMode
-from coingro.exceptions import ExchangeError, PricingError
-from coingro.exchange import timeframe_to_minutes, timeframe_to_msecs
+from coingro.constants import DATETIME_PRINT_FORMAT
 from coingro.exchange.common import SUPPORTED_EXCHANGES
-from coingro.loggers import bufferHandler
-from coingro.misc import decimals_per_coin, shorten_date
-from coingro.persistence import PairLocks, Trade
-from coingro.persistence.models import PairLock
-from coingro.plugins.pairlist.pairlist_helpers import expand_pairlist
-from coingro.resolvers import ExchangeResolver, StrategyResolver
+from coingro.rpc import RPCException
 from coingro.rpc.fiat_convert import CryptoToFiatConverter
-from coingro.wallets import PositionWallet, Wallet
-from coingro.rpc import RPCException, RPCHandler
+from dateutil.tz import tzlocal
 
 from coingro_controller.controller import Controller
 from coingro_controller.persistence import Strategy
@@ -54,19 +26,19 @@ class RPC:
     # Bind _fiat_converter if needed
     _fiat_converter: Optional[CryptoToFiatConverter] = None
 
-    def __init__(self, coingro_controller) -> None:
+    def __init__(self, controller) -> None:
         """
         Initializes all enabled rpc modules
         :param coingro: Instance of a coingro controller
         :return: None
         """
-        self._coingro_controller: Controller = coingro_controller
-        self._client: CoingroClient = coingro_controller.coingro_client
-        self._config: Dict[str, Any] = coingro_controller.config
+        self._controller: Controller = controller
+        self._client: CoingroClient = controller.coingro_client
+        self._config: Dict[str, Any] = controller.config
 
     @staticmethod
     def _rpc_list_strategies() -> Dict[str, Any]:
-        return {'strategies': [strategy.to_json(True) 
+        return {'strategies': [strategy.to_json(True)
                                for strategy in Strategy.get_active_strategies()]}
 
     @staticmethod
@@ -85,7 +57,7 @@ class RPC:
         }
 
     def _health(self) -> Dict[str, Union[str, int]]:
-        last_p = self._coingro_controller.last_process
+        last_p = self._controller.last_process
         return {
             'last_process': str(last_p),
             'last_process_loc': last_p.astimezone(tzlocal()).strftime(DATETIME_PRINT_FORMAT),
@@ -94,7 +66,7 @@ class RPC:
 
     def _state(self) -> Dict[str, str]:
         return {
-            'state': str(self._coingro_controller.state),
+            'state': str(self._controller.state),
         }
 
     @staticmethod
@@ -114,9 +86,9 @@ class RPC:
             raise RPCException(str(e)) from e
         return res
 
-    def _rpc_create_bot(user_id: str) -> Dict[str, Any]:
+    def _rpc_create_bot(self, user_id: str) -> Dict[str, Any]:
         try:
-            bot_id = self._coingro_controller.create_bot(user=user_id)
+            bot_id = self._controller.create_bot(user=user_id)
             return {
                 'bot_id': bot_id,
                 'status': 'Successfully created coingro bot.',
@@ -124,19 +96,19 @@ class RPC:
         except Exception as e:
             raise RPCException(f'Could not create bot due to {e}.')
 
-    def _rpc_activate_bot(bot_id: str) -> Dict[str, Any]:
+    def _rpc_activate_bot(self, bot_id: str) -> Dict[str, Any]:
         try:
-            bot_id = self._coingro_controller.create_bot(name=bot_id)
+            _bot_id = self._controller.create_bot(name=bot_id)
             return {
-                'bot_id': bot_id,
+                'bot_id': _bot_id,
                 'status': 'Successfully activated coingro bot.',
             }
         except Exception as e:
             raise RPCException(f'Could not activate bot due to {e}.')
 
-    def _rpc_deactivate_bot(bot_id: str) -> Dict[str, Any]:
+    def _rpc_deactivate_bot(self, bot_id: str) -> Dict[str, Any]:
         try:
-            bot_id = self._coingro_controller.deactivate_bot(name=bot_id)
+            bot_id = self._controller.deactivate_bot(name=bot_id)
             return {
                 'bot_id': bot_id,
                 'status': 'Successfully deactivated coingro bot.',
@@ -144,9 +116,9 @@ class RPC:
         except Exception as e:
             raise RPCException(f'Could not deactivate bot due to {e}.')
 
-    def _rpc_delete_bot(bot_id: str) -> Dict[str, Any]:
+    def _rpc_delete_bot(self, bot_id: str) -> Dict[str, Any]:
         try:
-            bot_id = self._coingro_controller.deactivate_bot(name=bot_id, delete=True)
+            bot_id = self._controller.deactivate_bot(name=bot_id, delete=True)
             return {
                 'bot_id': bot_id,
                 'status': 'Successfully deleted coingro bot.',

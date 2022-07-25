@@ -1,12 +1,10 @@
 # --- Do not remove these libs ---
-from coingro.strategy import IStrategy
-from coingro.strategy import IntParameter
-from pandas import DataFrame
-import numpy as np
-# --------------------------------
-
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy import IntParameter, IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
 
 
 def bollinger_bands(stock_price, window_size, num_of_std):

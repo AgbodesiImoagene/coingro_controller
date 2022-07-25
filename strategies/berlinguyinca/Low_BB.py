@@ -1,19 +1,13 @@
 # --- Do not remove these libs ---
+import coingro.vendor.qtpylib.indicators as qtpylib
+import talib.abstract as ta
 from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
 from pandas import DataFrame
+
+
 # --------------------------------
 
-import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame, DatetimeIndex, merge
 # --------------------------------
-
-import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
 
 
 # import numpy as np # noqa
@@ -90,9 +84,7 @@ class Low_BB(IStrategy):
 
                 (dataframe['close'] <= 0.98 * dataframe['bb_lowerband'])
 
-            )
-            ,
-            'buy'] = 1
+            ), 'buy'] = 1
 
         return dataframe
 

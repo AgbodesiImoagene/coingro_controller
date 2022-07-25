@@ -8,14 +8,13 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from sqlalchemy.engine import URL
-
 from coingro.configuration.config_security import Encryption
 from coingro.configuration.directory_operations import create_datadir, create_userdata_dir
 from coingro.configuration.environment_vars import flat_vars_to_nested_dict
 from coingro.configuration.load_config import load_config_file
 from coingro.exceptions import OperationalException
-from coingro.misc import deep_merge_dicts, parse_db_uri_for_logging
+from coingro.misc import deep_merge_dicts
+from sqlalchemy.engine import URL
 
 from coingro_controller.constants import DEFAULT_DB_URL, ENV_VAR_PREFIX
 from coingro_controller.loggers import setup_logging
@@ -195,19 +194,19 @@ class Configuration:
             return config['cg_image']
 
         if 'cg_image_config' in config:
-            cg_image_args = cg_image_args
+            cg_image_args = config['cg_image_args']
             cg_image = ''
 
             if 'registry_host' in cg_image_args:
-                cg_image += f'{cg_image_args['registry_host']}'
+                cg_image += f'{cg_image_args["registry_host"]}'
                 if 'registry_port' in cg_image_args:
-                    cg_image += f':{cg_image_args['registry_port']}'
+                    cg_image += f':{cg_image_args["registry_port"]}'
                 cg_image += '/'
 
             if 'repository' in cg_image_args:
-                cg_image += f'{cg_image_args['repository']}/'
+                cg_image += f'{cg_image_args["repository"]}/'
 
-            cg_image += f'{cg_image_args['name']}:{cg_image_args['tag']}'
+            cg_image += f'{cg_image_args["name"]}:{cg_image_args["tag"]}'
 
             return cg_image
 
@@ -228,7 +227,7 @@ class Configuration:
                 db_args['drivername'] = 'postgresql+psycopg2'
 
             if db_args['drivername'] != 'sqlite' and 'database' not in db_args:
-                db_args['database'] = 'coingro.k8s.controller' 
+                db_args['database'] = 'coingro.k8s.controller'
 
             return URL.create(**db_args).render_as_string(hide_password=False)
 

@@ -1,17 +1,9 @@
-import argparse
-import inspect
 import json
 import logging
-import re
-import sys
-from pathlib import Path
 from typing import Any, Dict
 from urllib.parse import urlencode, urlparse, urlunparse
 
-import rapidjson
 import requests
-from requests.exceptions import ConnectionError
-
 from coingro.exceptions import TemporaryError
 from coingro.misc import retrier
 
@@ -22,12 +14,12 @@ logger = logging.getLogger(__name__)
 class CoingroClient:
     def __init__(self, config: Dict[str, Any]):
         self._session = requests.Session()
-    	if ('cg_api_server_username' in config) and ('cg_api_server_password' in config):
-    		username = config['cg_api_server_username']
-    		password = config['cg_api_server_password']
-	        self._session.auth = (username, password)
+        if ('cg_api_server_username' in config) and ('cg_api_server_password' in config):
+            username = config['cg_api_server_username']
+            password = config['cg_api_server_password']
+            self._session.auth = (username, password)
 
-	@retrier(retries=3, sleep_time=1)
+    @retrier(retries=3, sleep_time=1)
     def _call(self, method, serverurl, apipath, params: dict = None, data=None, files=None):
 
         if str(method).upper() not in ('GET', 'POST', 'PUT', 'DELETE'):
@@ -50,7 +42,7 @@ class CoingroClient:
             # return resp.text
             return resp.json()
         except Exception as e:
-        	raise TemporaryError(e)
+            raise TemporaryError(e)
 
     def _get(self, serverurl, apipath, params: dict = None):
         return self._call("GET", serverurl, apipath, params=params)
@@ -120,8 +112,8 @@ class CoingroClient:
         :return: json object
         """
         if pair:
-            data={'lockid': lock_id, 'pair': pair}
-            return self._post(serverurl, f"locks/delete", data=data)
+            data = {'lockid': lock_id, 'pair': pair}
+            return self._post(serverurl, "locks/delete", data=data)
         else:
             return self._delete(serverurl, f"locks/{lock_id}")
 
@@ -497,4 +489,3 @@ class CoingroClient:
                 'timeunit': timeunit,
                 'timescale': timescale,
             })
-

@@ -1,23 +1,22 @@
-import talib.abstract as ta
-from pandas import DataFrame
-import scipy.signal
-import coingro.vendor.qtpylib.indicators as qtpylib
 from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
 
 
 class TDSequentialStrategy(IStrategy):
     """
     Strategy based on TD Sequential indicator.
     source:
-    https://hackernoon.com/how-to-buy-sell-cryptocurrency-with-number-indicator-td-sequential-5af46f0ebce1
+    https://hackernoon.com/how-to-buy-sell-cryptocurrency-with-number-indicator-td-sequential-5af46f0ebce1  # noqa: E501
 
     Buy trigger:
         When you see 9 consecutive closes "lower" than the close 4 bars prior.
-        An ideal buy is when the low of bars 6 and 7 in the count are exceeded by the low of bars 8 or 9.
+        An ideal buy is when the low of bars 6 and 7 in the count are exceeded by the
+        low of bars 8 or 9.
 
     Sell trigger:
         When you see 9 consecutive closes "higher" than the close 4 candles prior.
-        An ideal sell is when the the high of bars 6 and 7 in the count are exceeded by the high of bars 8 or 9.
+        An ideal sell is when the the high of bars 6 and 7 in the count are exceeded by
+        the high of bars 8 or 9.
 
     Created by @bmoulkaf
     """
@@ -62,7 +61,8 @@ class TDSequentialStrategy(IStrategy):
 
     def informative_pairs(self):
         """
-        Define additional, informative pair/interval combinations to be cached from the exchange.
+        Define additional, informative pair/interval combinations to be cached
+        from the exchange.
         These pair/interval combinations are non-tradeable, unless they are part
         of the whitelist as well.
         For more information, please consult the documentation
@@ -99,27 +99,35 @@ class TDSequentialStrategy(IStrategy):
             (dataframe['seq_sell'] != dataframe['seq_sell'].shift()).cumsum()).cumcount() + 1)
 
         for index, row in dataframe.iterrows():
-            # check if the low of bars 6 and 7 in the count are exceeded by the low of bars 8 or 9.
+            # check if the low of bars 6 and 7 in the count are exceeded by the
+            # low of bars 8 or 9.
             seq_b = row['seq_buy']
             if seq_b == 8:
-                dataframe.loc[index, 'exceed_low'] = (row['low'] < dataframe.loc[index - 2, 'low']) | \
+                dataframe.loc[index, 'exceed_low'] = (row['low'] <
+                                                      dataframe.loc[index - 2, 'low']) | \
                                     (row['low'] < dataframe.loc[index - 1, 'low'])
             if seq_b > 8:
-                dataframe.loc[index, 'exceed_low'] = (row['low'] < dataframe.loc[index - 3 - (seq_b - 9), 'low']) | \
+                dataframe.loc[index, 'exceed_low'] = (row['low'] < dataframe.loc[index - 3 -
+                                                      (seq_b - 9), 'low']) | \
                                     (row['low'] < dataframe.loc[index - 2 - (seq_b - 9), 'low'])
                 if seq_b == 9:
-                    dataframe.loc[index, 'exceed_low'] = row['exceed_low'] | dataframe.loc[index-1, 'exceed_low']
+                    dataframe.loc[index, 'exceed_low'] = row['exceed_low'] | \
+                        dataframe.loc[index - 1, 'exceed_low']
 
-            # check if the high of bars 6 and 7 in the count are exceeded by the high of bars 8 or 9.
+            # check if the high of bars 6 and 7 in the count are exceeded by the
+            # high of bars 8 or 9.
             seq_s = row['seq_sell']
             if seq_s == 8:
-                dataframe.loc[index, 'exceed_high'] = (row['high'] > dataframe.loc[index - 2, 'high']) | \
+                dataframe.loc[index, 'exceed_high'] = (row['high'] >
+                                                       dataframe.loc[index - 2, 'high']) | \
                                     (row['high'] > dataframe.loc[index - 1, 'high'])
             if seq_s > 8:
-                dataframe.loc[index, 'exceed_high'] = (row['high'] > dataframe.loc[index - 3 - (seq_s - 9), 'high']) | \
+                dataframe.loc[index, 'exceed_high'] = (row['high'] > dataframe.loc[index - 3 -
+                                                       (seq_s - 9), 'high']) | \
                                     (row['high'] > dataframe.loc[index - 2 - (seq_s - 9), 'high'])
                 if seq_s == 9:
-                    dataframe.loc[index, 'exceed_high'] = row['exceed_high'] | dataframe.loc[index-1, 'exceed_high']
+                    dataframe.loc[index, 'exceed_high'] = row['exceed_high'] | \
+                        dataframe.loc[index - 1, 'exceed_high']
 
         return dataframe
 
@@ -132,8 +140,7 @@ class TDSequentialStrategy(IStrategy):
         """
         dataframe["buy"] = 0
         dataframe.loc[((dataframe['exceed_low']) &
-                      (dataframe['seq_buy'] > 8))
-                      , 'buy'] = 1
+                      (dataframe['seq_buy'] > 8)), 'buy'] = 1
 
         return dataframe
 
@@ -146,6 +153,5 @@ class TDSequentialStrategy(IStrategy):
         """
         dataframe["sell"] = 0
         dataframe.loc[((dataframe['exceed_high']) |
-                       (dataframe['seq_sell'] > 8))
-                      , 'sell'] = 1
+                       (dataframe['seq_sell'] > 8)), 'sell'] = 1
         return dataframe

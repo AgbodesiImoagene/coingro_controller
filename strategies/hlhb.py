@@ -1,11 +1,11 @@
 # pragma pylint: disable=missing-docstring, invalid-name, pointless-string-statement
 
+import coingro.vendor.qtpylib.indicators as qtpylib
 import numpy as np  # noqa
 import pandas as pd  # noqa
-from pandas import DataFrame
-from coingro.strategy import IStrategy
 import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy import IStrategy
+from pandas import DataFrame
 
 
 class hlhb(IStrategy):
@@ -64,7 +64,7 @@ class hlhb(IStrategy):
         'buy': 'gtc',
         'sell': 'gtc'
     }
-    
+
     plot_config = {
         # Main plot indicators (Moving averages, ...)
         'main_plot': {
@@ -81,7 +81,7 @@ class hlhb(IStrategy):
             }
         }
     }
-    
+
     def informative_pairs(self):
         return []
 
@@ -125,4 +125,3 @@ class hlhb(IStrategy):
             ),
             'sell'] = 1
         return dataframe
-    

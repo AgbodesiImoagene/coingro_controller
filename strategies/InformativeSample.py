@@ -1,19 +1,18 @@
 
 # --- Do not remove these libs ---
-from coingro.strategy import IStrategy, merge_informative_pair
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
-# --------------------------------
-
 import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy import IStrategy, merge_informative_pair
+from pandas import DataFrame
+
+
+# --------------------------------
 
 
 class InformativeSample(IStrategy):
     """
     Sample strategy implementing Informative Pairs - compares stake_currency with USDT.
-    Not performing very well - but should serve as an example how to use a referential pair against USDT.
+    Not performing very well - but should serve as an example how to use a referential pair
+    against USDT.
     author@: xmatthias
     github@: https://github.com/coingro/coingro-strategies
 
@@ -69,7 +68,7 @@ class InformativeSample(IStrategy):
                             ("BTC/USDT", "15m"),
                             ]
         """
-        return [(f"BTC/USDT", '15m')]
+        return [("BTC/USDT", '15m')]
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
@@ -86,14 +85,15 @@ class InformativeSample(IStrategy):
         if self.dp:
             # Get ohlcv data for informative pair at 15m interval.
             inf_tf = '15m'
-            informative = self.dp.get_pair_dataframe(pair=f"BTC/USDT",
+            informative = self.dp.get_pair_dataframe(pair="BTC/USDT",
                                                      timeframe=inf_tf)
 
             # calculate SMA20 on informative pair
             informative['sma20'] = informative['close'].rolling(20).mean()
 
             # Combine the 2 dataframe
-            # This will result in a column named 'closeETH' or 'closeBTC' - depending on stake_currency.
+            # This will result in a column named 'closeETH' or 'closeBTC' - depending on
+            # stake_currency.
             dataframe = merge_informative_pair(dataframe, informative,
                                                self.timeframe, inf_tf, ffill=True)
 

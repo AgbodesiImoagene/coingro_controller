@@ -1,8 +1,8 @@
 # --- Do not remove these libs ---
 import coingro.vendor.qtpylib.indicators as qtpylib
 import talib.abstract as ta
-from coingro.strategy.interface import IStrategy
 from coingro.strategy import IntParameter
+from coingro.strategy.interface import IStrategy
 from pandas import DataFrame
 
 
@@ -13,7 +13,7 @@ class CofiBitStrategy(IStrategy):
     """
         taken from slack by user CofiBit
     """
-    
+
     # Buy hyperspace params:
     buy_params = {
         "buy_fastx": 25,

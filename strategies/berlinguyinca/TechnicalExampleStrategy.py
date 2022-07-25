@@ -1,7 +1,6 @@
+from coingro.strategy.interface import IStrategy
 from pandas import DataFrame
 from technical.indicators import cmf
-
-from coingro.strategy.interface import IStrategy
 
 
 class TechnicalExampleStrategy(IStrategy):

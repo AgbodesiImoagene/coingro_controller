@@ -1,12 +1,11 @@
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
-# --------------------------------
-
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
+import talib.abstract as ta
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
 
 
 class Quickie(IStrategy):
@@ -15,7 +14,8 @@ class Quickie(IStrategy):
     author@: Gert Wohlgemuth
 
     idea:
-        momentum based strategie. The main idea is that it closes trades very quickly, while avoiding excessive losses. Hence a rather moderate stop loss in this case
+        momentum based strategie. The main idea is that it closes trades very quickly,
+        while avoiding excessive losses. Hence a rather moderate stop loss in this case
     """
 
     # Minimal ROI designed for the strategy.

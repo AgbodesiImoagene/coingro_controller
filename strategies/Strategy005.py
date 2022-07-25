@@ -1,14 +1,15 @@
 
 # --- Do not remove these libs ---
-from coingro.strategy import IStrategy
-from coingro.strategy import CategoricalParameter, IntParameter
 from functools import reduce
-from pandas import DataFrame
-# --------------------------------
 
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
-import numpy # noqa
+import numpy  # noqa
+import talib.abstract as ta
+from coingro.strategy import CategoricalParameter, IntParameter, IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
 
 
 class Strategy005(IStrategy):
@@ -152,7 +153,8 @@ class Strategy005(IStrategy):
             # Prod
             (
                 (dataframe['close'] > 0.00000200) &
-                (dataframe['volume'] > dataframe['volume'].rolling(self.buy_volumeAVG.value).mean() * 4) &
+                (dataframe['volume'] >
+                    dataframe['volume'].rolling(self.buy_volumeAVG.value).mean() * 4) &
                 (dataframe['close'] < dataframe['sma']) &
                 (dataframe['fastd'] > dataframe['fastk']) &
                 (dataframe['rsi'] > self.buy_rsi.value) &

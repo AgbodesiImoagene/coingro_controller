@@ -1,18 +1,18 @@
-from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
-# --------------------------------
-
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
 import numpy  # noqa
+import talib.abstract as ta
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
 
 
 class EMASkipPump(IStrategy):
 
     """
-        basic strategy, which trys to avoid pump and dump market conditions. Shared from the tradingview
+        basic strategy, which trys to avoid pump and dump market conditions.
+        Shared from the tradingview
         slack
     """
     EMA_SHORT_TERM = 5

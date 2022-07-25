@@ -17,6 +17,7 @@ from coingro.loggers import setup_logging_pre
 
 from coingro_controller.commands import ControllerArguments
 
+
 logger = logging.getLogger('coingro')
 
 

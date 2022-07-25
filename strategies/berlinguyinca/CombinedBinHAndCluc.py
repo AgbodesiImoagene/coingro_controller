@@ -17,7 +17,8 @@ def bollinger_bands(stock_price, window_size, num_of_std):
 class CombinedBinHAndCluc(IStrategy):
     # Based on a backtesting:
     # - the best perfomance is reached with "max_open_trades" = 2 (in average for any market),
-    #   so it is better to increase "stake_amount" value rather then "max_open_trades" to get more profit
+    #   so it is better to increase "stake_amount" value rather then "max_open_trades" to get
+    # more profit
     # - if the market is constantly green(like in JAN 2018) the best performance is reached with
     #   "max_open_trades" = 2 and minimal_roi = 0.01
     minimal_roi = {

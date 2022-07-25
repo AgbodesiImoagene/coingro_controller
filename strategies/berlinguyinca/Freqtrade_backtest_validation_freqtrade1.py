@@ -4,13 +4,13 @@
 # The purpose is to test Coingro backtest provides like results to a known industry platform.
 #
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from pandas import DataFrame
-# --------------------------------
-
 # Add your lib to import here
 import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
 
 
 class Coingro_backtest_validation_coingro1(IStrategy):

@@ -1,8 +1,8 @@
 # --- Do not remove these libs ---
+import coingro.vendor.qtpylib.indicators as qtpylib
+import talib.abstract as ta
 from coingro.strategy.interface import IStrategy
 from pandas import DataFrame
-import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
 
 
 # --------------------------------

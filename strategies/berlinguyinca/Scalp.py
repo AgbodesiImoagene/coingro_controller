@@ -1,15 +1,15 @@
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
 # --------------------------------
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
+import talib.abstract as ta
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
+
 
 class Scalp(IStrategy):
     """
-        this strategy is based around the idea of generating a lot of potentatils buys and make tiny profits on each trade
+        this strategy is based around the idea of generating a lot of potentatils buys and make
+        tiny profits on each trade
 
         we recommend to have at least 60 parallel trades at any time to cover non avoidable losses.
 

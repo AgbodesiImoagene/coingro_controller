@@ -1,6 +1,8 @@
 # pragma pylint: disable=missing-docstring, invalid-name, pointless-string-statement
 # isort: skip_file
 # --- Do not remove these libs ---
+from typing import Any, Dict
+
 import numpy as np  # noqa
 import pandas as pd  # noqa
 from pandas import DataFrame
@@ -10,7 +12,6 @@ from coingro.strategy.interface import IStrategy
 # --------------------------------
 # Add your lib to import here
 import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
 from datetime import datetime
 from coingro.persistence import Trade
 
@@ -25,7 +26,7 @@ class CustomStoplossWithPSAR(IStrategy):
     """
     timeframe = '1h'
     stoploss = -0.2
-    custom_info = {}
+    custom_info: Dict[str, Any] = {}
     use_custom_stoploss = True
 
     def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime,
@@ -40,7 +41,7 @@ class CustomStoplossWithPSAR(IStrategy):
                 # so we need to get analyzed_dataframe from dp
                 dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
                 # only use .iat[-1] in callback methods, never in "populate_*" methods.
-                # see: https://www.coingro.io/en/latest/strategy-customization/#common-mistakes-when-developing-strategies
+                # see: https://www.freqtrade.io/en/latest/strategy-customization/#common-mistakes-when-developing-strategies  # noqa: E501
                 last_candle = dataframe.iloc[-1].squeeze()
                 relative_sl = last_candle['sar']
 
@@ -48,7 +49,8 @@ class CustomStoplossWithPSAR(IStrategy):
                 # print("custom_stoploss().relative_sl: {}".format(relative_sl))
                 # calculate new_stoploss relative to current_rate
                 new_stoploss = (current_rate - relative_sl) / current_rate
-                # turn into relative negative offset required by `custom_stoploss` return implementation
+                # turn into relative negative offset required by `custom_stoploss`
+                # return implementation
                 result = new_stoploss - 1
 
         # print("custom_stoploss() -> {}".format(result))

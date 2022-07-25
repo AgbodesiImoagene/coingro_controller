@@ -9,15 +9,9 @@ email       = "kevin.ossenbrueck@pm.de"
 status      = "Live"
 """
 
-from coingro.strategy import IStrategy
-from coingro.strategy import IntParameter
-from functools import reduce
-from pandas import DataFrame
-
 import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
-import numpy
-
+from coingro.strategy import IntParameter, IStrategy
+from pandas import DataFrame
 
 
 # CCI timerperiods and values

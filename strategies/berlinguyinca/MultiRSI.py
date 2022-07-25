@@ -1,8 +1,8 @@
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from pandas import DataFrame
 # --------------------------------
 import talib.abstract as ta
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
 from technical.util import resample_to_interval, resampled_merge
 
 
@@ -55,7 +55,8 @@ class MultiRSI(IStrategy):
             (
                 # must be bearish
                 (dataframe['sma5'] >= dataframe['sma200']) &
-                (dataframe['rsi'] < (dataframe['resample_{}_rsi'.format(self.get_ticker_indicator() * 8)] - 20))
+                (dataframe['rsi'] <
+                    (dataframe['resample_{}_rsi'.format(self.get_ticker_indicator() * 8)] - 20))
             ),
             'buy'] = 1
         return dataframe
@@ -63,8 +64,10 @@ class MultiRSI(IStrategy):
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
             (
-                (dataframe['rsi'] > dataframe['resample_{}_rsi'.format(self.get_ticker_indicator()*2)]) &
-                (dataframe['rsi'] > dataframe['resample_{}_rsi'.format(self.get_ticker_indicator()*8)])
+                (dataframe['rsi'] >
+                    dataframe['resample_{}_rsi'.format(self.get_ticker_indicator() * 2)]) &
+                (dataframe['rsi'] >
+                    dataframe['resample_{}_rsi'.format(self.get_ticker_indicator() * 8)])
             ),
             'sell'] = 1
         return dataframe

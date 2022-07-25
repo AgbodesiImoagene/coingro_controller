@@ -3,17 +3,12 @@ Main Coingro controller worker class.
 """
 import logging
 import time
-import traceback
 from os import getpid
-from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 import sdnotify
-
 from coingro import __env__
-from coingro.coingrobot import CoingroBot
-from coingro.constants import (DEFAULT_CONFIG_SAVE, PROCESS_THROTTLE_SECS, RETRY_TIMEOUT,
-                               USERPATH_CONFIG)
+from coingro.constants import PROCESS_THROTTLE_SECS, RETRY_TIMEOUT
 from coingro.enums import State
 from coingro.exceptions import ExchangeError, OperationalException, TemporaryError
 
@@ -58,9 +53,6 @@ class Worker:
 
         validate_config_consistency(self._config)
 
-        # # Init the instance of the bot
-        # self.coingro = CoingroBot(self._config)
-
         self.controller = Controller(self._config)
 
         internals_config = self._config.get('internals', {})
@@ -93,21 +85,15 @@ class Worker:
         :param old_state: the previous service state from the previous call
         :return: current service state
         """
-        # state = self.coingro.state
+        state = self.controller.state
 
         # Log state transition
         if state != old_state:
 
-            if old_state != State.RELOAD_CONFIG:
-                # self.coingro.notify_status(f'{state.name.lower()}')
-
             logger.info(
                 f"Changing state{f' from {old_state.name}' if old_state else ''} to: {state.name}")
             if state == State.RUNNING:
-                # self.coingro.startup()
-
-            if state == State.STOPPED:
-                # self.coingro.check_for_open_trades()
+                self.controller.startup()
 
             # Reset heartbeat timestamp to log the heartbeat message at
             # first throttling iteration when the state changes
@@ -129,10 +115,7 @@ class Worker:
             now = time.time()
             if (now - self._heartbeat_msg) > self._heartbeat_interval:
                 version = __version__
-                # strategy_version = self.coingro.strategy.version()
-                if (strategy_version is not None):
-                    version += ', strategy_version: ' + strategy_version
-                logger.info(f"Bot heartbeat. PID={getpid()}, "
+                logger.info(f"Controller heartbeat. PID={getpid()}, "
                             f"version='{version}', state='{state.name}'")
                 self._heartbeat_msg = now
 
@@ -157,23 +140,18 @@ class Worker:
         return result
 
     def _process_stopped(self) -> None:
-        # self.coingro.process_stopped()
+        self.controller.process_stopped()
 
     def _process_running(self) -> None:
         try:
-            # self.coingro.process()
+            self.controller.process()
         except TemporaryError as error:
             logger.warning(f"Error: {error}, retrying in {RETRY_TIMEOUT} seconds...")
             time.sleep(RETRY_TIMEOUT)
         except (OperationalException, ExchangeError) as error:
             if isinstance(error, OperationalException) or __env__ == 'docker':
-                tb = traceback.format_exc()
-                hint = 'Issue `/start` if you think it is safe to restart.'
-
-                # self.coingro.notify_status(f'{type(error).__name__}:\n```\n{tb}```{hint}')
-
                 logger.exception(f'{type(error).__name__}. Stopping trader ...')
-                # self.coingro.state = State.STOPPED
+                self.controller.state = State.STOPPED
 
     def _reconfigure(self) -> None:
         """
@@ -184,12 +162,10 @@ class Worker:
         self._notify("RELOADING=1")
 
         # Clean up current coingro modules
-        # self.coingro.cleanup()
+        self.controller.cleanup()
 
-        # Load and validate config and create new instance of the bot
+        # Load and validate config and create new instance of the Controller
         self._init(True)
-
-        # self.coingro.notify_status('config reloaded')
 
         # Tell systemd that we completed reconfiguration
         self._notify("READY=1")
@@ -198,7 +174,5 @@ class Worker:
         # Tell systemd that we are exiting now
         self._notify("STOPPING=1")
 
-        # if self.coingro:
-            # self.coingro.notify_status('process died')
-            # self.coingro.cleanup()
-
+        if self.controller:
+            self.controller.cleanup()

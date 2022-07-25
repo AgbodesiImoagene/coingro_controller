@@ -1,14 +1,13 @@
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame, merge, DatetimeIndex
-# --------------------------------
-
-import talib.abstract as ta
 import coingro.vendor.qtpylib.indicators as qtpylib
-from technical.util import resample_to_interval, resampled_merge
+import talib.abstract as ta
 from coingro.exchange import timeframe_to_minutes
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
+from technical.util import resample_to_interval, resampled_merge
+
+
+# --------------------------------
 
 
 class ReinforcedAverageStrategy(IStrategy):
@@ -17,7 +16,8 @@ class ReinforcedAverageStrategy(IStrategy):
     author@: Gert Wohlgemuth
 
     idea:
-        buys and sells on crossovers - doesn't really perfom that well and its just a proof of concept
+        buys and sells on crossovers - doesn't really perfom that well and its just
+        a proof of concept
     """
 
     # Minimal ROI designed for the strategy.

@@ -1,33 +1,23 @@
 import logging
-from copy import deepcopy
-from pathlib import Path
 from typing import List, Optional
 
+from coingro.constants import SUPPORTED_FIAT, SUPPORTED_STAKE_CURRENCIES
+from coingro.exchange.common import SUPPORTED_EXCHANGES
+from coingro.rpc import RPC
+from coingro.rpc.api_server.api_schemas import (Balances, BlacklistPayload, BlacklistResponse,
+                                                Count, Daily, DeleteLockRequest, DeleteTrade,
+                                                ExchangeInfo, ForceEnterPayload, ForceEnterResponse,
+                                                ForceExitPayload, Health, Locks, Logs,
+                                                OpenTradeSchema, PerformanceEntry, Ping, Profit,
+                                                ResultMsg, SettingsOptions, ShowConfig, State,
+                                                Stats, StatusMsg, SysInfo, UpdateExchangePayload,
+                                                UpdateSettingsPayload, UpdateStrategyPayload,
+                                                Version, WhitelistResponse)
 from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import HTTPException
 
-from coingro.constants import SUPPORTED_FIAT, SUPPORTED_STAKE_CURRENCIES, USERPATH_STRATEGIES
-from coingro.data.history import get_datahandler
-from coingro.enums import CandleType, TradingMode
-from coingro.exceptions import OperationalException
-from coingro.exchange.common import SUPPORTED_EXCHANGES
-from coingro.rpc import RPC
-from coingro.rpc.api_server.api_schemas import (AvailablePairs, Balances, BlacklistPayload,
-                                                BlacklistResponse, Count, Daily, DeleteLockRequest,
-                                                DeleteTrade, ExchangeInfo, ForceEnterPayload,
-                                                ForceEnterResponse, ForceExitPayload, Health, Locks,
-                                                Logs, OpenTradeSchema, PairHistory,
-                                                PerformanceEntry, Ping, PlotConfig, Profit,
-                                                ResultMsg, SettingsOptions, ShowConfig, State,
-                                                Stats, StatusMsg, StrategyListResponse,
-                                                StrategyResponse, SysInfo, UpdateExchangePayload,
-                                                UpdateSettingsPayload, UpdateStrategyPayload,
-                                                Version, WhitelistResponse)
-from coingro.rpc.rpc import RPCException
-
 from coingro_controller import __version__
-from coingro_controller.rpc.api_server.deps import (get_bot, get_client, get_config, get_rpc, 
-                                                    get_rpc_optional, get_user)
+from coingro_controller.rpc.api_server.deps import get_bot, get_client, get_rpc, get_user
 
 
 logger = logging.getLogger(__name__)
@@ -175,7 +165,7 @@ def force_entry(payload: ForceEnterPayload, bot=Depends(get_bot), client=Depends
         return client.forceenter(bot.bot_id, payload.pair, side, payload.price, ordertype,
                                  payload.stake_amount, payload.entry_tag)
     except Exception as e:
-       raise HTTPException(status_code=500, detail=e)
+        raise HTTPException(status_code=500, detail=e)
 
 
 @router.post('/forceexit', response_model=ResultMsg, tags=['trading'])
@@ -205,7 +195,8 @@ def blacklist_post(payload: BlacklistPayload, bot=Depends(get_bot), client=Depen
 
 
 @router.delete('/blacklist', response_model=BlacklistResponse, tags=['info', 'pairlist'])
-def blacklist_delete(pairs_to_delete: List[str] = Query([]), bot=Depends(get_bot), client=Depends(get_client)):
+def blacklist_delete(pairs_to_delete: List[str] = Query([]),
+                     bot=Depends(get_bot), client=Depends(get_client)):
     """Provide a list of pairs to delete from the blacklist"""
     try:
         return client.delete_blacklist(bot.bot_id, pairs_to_delete)

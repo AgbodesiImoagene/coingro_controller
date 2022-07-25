@@ -1,13 +1,13 @@
 
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
-from pandas import DataFrame
-# --------------------------------
-
+import numpy  # noqa
 # Add your lib to import here
 import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
-import numpy # noqa
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
 
 
 # This class is a sample. Feel free to customize it.
@@ -58,7 +58,7 @@ class CMCWinner(IStrategy):
         # MFI
         dataframe['mfi'] = ta.MFI(dataframe)
 
-		# CMO
+        # CMO
         dataframe['cmo'] = ta.CMO(dataframe)
 
         return dataframe

@@ -1,13 +1,11 @@
 import logging
 from typing import Any, Dict
 
+from coingro.configuration.config_validation import CoingroValidator
 from jsonschema import Draft4Validator
 from jsonschema.exceptions import ValidationError, best_match
 
-from coingro.configuration.config_validation import CoingroValidator
-# from coingro.exceptions import OperationalException
-
-from coingro_controller.constants import CONF_SCHEMA
+from coingro_controller.constants import CONTROLLER_CONF_SCHEMA
 
 
 logger = logging.getLogger(__name__)
@@ -20,14 +18,14 @@ def validate_config_schema(conf: Dict[str, Any]) -> Dict[str, Any]:
     :return: Returns the config if valid, otherwise throw an exception
     """
     try:
-        CoingroValidator(CONF_SCHEMA).validate(conf)
+        CoingroValidator(CONTROLLER_CONF_SCHEMA).validate(conf)
         return conf
     except ValidationError as e:
         logger.critical(
             f"Invalid configuration. Reason: {e}"
         )
         raise ValidationError(
-            best_match(Draft4Validator(CONF_SCHEMA).iter_errors(conf)).message
+            best_match(Draft4Validator(CONTROLLER_CONF_SCHEMA).iter_errors(conf)).message
         )
 
 

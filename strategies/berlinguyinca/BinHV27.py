@@ -1,25 +1,18 @@
-from coingro.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
-# --------------------------------
-
-import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame, DatetimeIndex, merge
-# --------------------------------
-
-import talib.abstract as ta
-import coingro.vendor.qtpylib.indicators as qtpylib
 import numpy  # noqa
+import talib.abstract as ta
+from coingro.strategy.interface import IStrategy
+from pandas import DataFrame
+
+
+# --------------------------------
+
+# --------------------------------
 
 
 class BinHV27(IStrategy):
     """
 
-        strategy sponsored by user BinH from slack
+            strategy sponsored by user BinH from slack
 
     """
 
@@ -45,15 +38,19 @@ class BinHV27(IStrategy):
         dataframe['highsma'] = numpy.nan_to_num(ta.EMA(dataframe, timeperiod=120))
         dataframe['fastsma'] = numpy.nan_to_num(ta.SMA(dataframe, timeperiod=120))
         dataframe['slowsma'] = numpy.nan_to_num(ta.SMA(dataframe, timeperiod=240))
-        dataframe['bigup'] = dataframe['fastsma'].gt(dataframe['slowsma']) & ((dataframe['fastsma'] - dataframe['slowsma']) > dataframe['close'] / 300)
+        dataframe['bigup'] = dataframe['fastsma'].gt(dataframe['slowsma']) & \
+            ((dataframe['fastsma'] - dataframe['slowsma']) > dataframe['close'] / 300)
         dataframe['bigdown'] = ~dataframe['bigup']
         dataframe['trend'] = dataframe['fastsma'] - dataframe['slowsma']
         dataframe['preparechangetrend'] = dataframe['trend'].gt(dataframe['trend'].shift())
-        dataframe['preparechangetrendconfirm'] = dataframe['preparechangetrend'] & dataframe['trend'].shift().gt(dataframe['trend'].shift(2))
-        dataframe['continueup'] = dataframe['slowsma'].gt(dataframe['slowsma'].shift()) & dataframe['slowsma'].shift().gt(dataframe['slowsma'].shift(2))
+        dataframe['preparechangetrendconfirm'] = dataframe['preparechangetrend'] & \
+            dataframe['trend'].shift().gt(dataframe['trend'].shift(2))
+        dataframe['continueup'] = dataframe['slowsma'].gt(dataframe['slowsma'].shift()) & \
+            dataframe['slowsma'].shift().gt(dataframe['slowsma'].shift(2))
         dataframe['delta'] = dataframe['fastsma'] - dataframe['fastsma'].shift()
         dataframe['slowingdown'] = dataframe['delta'].lt(dataframe['delta'].shift())
         return dataframe
+
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
             dataframe['slowsma'].gt(0) &
@@ -62,74 +59,75 @@ class BinHV27(IStrategy):
             dataframe['minusdi'].gt(dataframe['minusdiema']) &
             dataframe['rsi'].ge(dataframe['rsi'].shift()) &
             (
-              (
-                ~dataframe['preparechangetrend'] &
-                ~dataframe['continueup'] &
-                dataframe['adx'].gt(25) &
-                dataframe['bigdown'] &
-                dataframe['emarsi'].le(20)
-              ) |
-              (
-                ~dataframe['preparechangetrend'] &
-                dataframe['continueup'] &
-                dataframe['adx'].gt(30) &
-                dataframe['bigdown'] &
-                dataframe['emarsi'].le(20)
-              ) |
-              (
-                ~dataframe['continueup'] &
-                dataframe['adx'].gt(35) &
-                dataframe['bigup'] &
-                dataframe['emarsi'].le(20)
-              ) |
-              (
-                dataframe['continueup'] &
-                dataframe['adx'].gt(30) &
-                dataframe['bigup'] &
-                dataframe['emarsi'].le(25)
-              )
-            ),
-            'buy'] = 1
+                (
+                    ~dataframe['preparechangetrend'] &
+                    ~dataframe['continueup'] &
+                    dataframe['adx'].gt(25) &
+                    dataframe['bigdown'] &
+                    dataframe['emarsi'].le(20)
+                ) |
+                (
+                    ~dataframe['preparechangetrend'] &
+                    dataframe['continueup'] &
+                    dataframe['adx'].gt(30) &
+                    dataframe['bigdown'] &
+                    dataframe['emarsi'].le(20)
+                ) |
+                (
+                    ~dataframe['continueup'] &
+                    dataframe['adx'].gt(35) &
+                    dataframe['bigup'] &
+                    dataframe['emarsi'].le(20)
+                ) |
+                (
+                    dataframe['continueup'] &
+                    dataframe['adx'].gt(30) &
+                    dataframe['bigup'] &
+                    dataframe['emarsi'].le(25)
+                )
+            ), 'buy'] = 1
         return dataframe
+
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
             (
-              (
-                ~dataframe['preparechangetrendconfirm'] &
-                ~dataframe['continueup'] &
-                (dataframe['close'].gt(dataframe['lowsma']) | dataframe['close'].gt(dataframe['highsma'])) &
-                dataframe['highsma'].gt(0) &
-                dataframe['bigdown']
-              ) |
-              (
-                ~dataframe['preparechangetrendconfirm'] &
-                ~dataframe['continueup'] &
-                dataframe['close'].gt(dataframe['highsma']) &
-                dataframe['highsma'].gt(0) &
-                (dataframe['emarsi'].ge(75) | dataframe['close'].gt(dataframe['slowsma'])) &
-                dataframe['bigdown']
-              ) |
-              (
-                ~dataframe['preparechangetrendconfirm'] &
-                dataframe['close'].gt(dataframe['highsma']) &
-                dataframe['highsma'].gt(0) &
-                dataframe['adx'].gt(30) &
-                dataframe['emarsi'].ge(80) &
-                dataframe['bigup']
-              ) |
-              (
-                dataframe['preparechangetrendconfirm'] &
-                ~dataframe['continueup'] &
-                dataframe['slowingdown'] &
-                dataframe['emarsi'].ge(75) &
-                dataframe['slowsma'].gt(0)
-              ) |
-              (
-                dataframe['preparechangetrendconfirm'] &
-                dataframe['minusdi'].lt(dataframe['plusdi']) &
-                dataframe['close'].gt(dataframe['lowsma']) &
-                dataframe['slowsma'].gt(0)
-              )
-            ),
-            'sell'] = 1
+                (
+                    ~dataframe['preparechangetrendconfirm'] &
+                    ~dataframe['continueup'] &
+                    (dataframe['close'].gt(dataframe['lowsma']) |
+                        dataframe['close'].gt(dataframe['highsma'])) &
+                    dataframe['highsma'].gt(0) &
+                    dataframe['bigdown']
+                ) |
+                (
+                    ~dataframe['preparechangetrendconfirm'] &
+                    ~dataframe['continueup'] &
+                    dataframe['close'].gt(dataframe['highsma']) &
+                    dataframe['highsma'].gt(0) &
+                    (dataframe['emarsi'].ge(75) |
+                        dataframe['close'].gt(dataframe['slowsma'])) &
+                    dataframe['bigdown']
+                ) |
+                (
+                    ~dataframe['preparechangetrendconfirm'] &
+                    dataframe['close'].gt(dataframe['highsma']) &
+                    dataframe['highsma'].gt(0) &
+                    dataframe['adx'].gt(30) &
+                    dataframe['emarsi'].ge(80) &
+                    dataframe['bigup']
+                ) |
+                (
+                    dataframe['preparechangetrendconfirm'] &
+                    ~dataframe['continueup'] &
+                    dataframe['slowingdown'] &
+                    dataframe['emarsi'].ge(75) &
+                    dataframe['slowsma'].gt(0)
+                ) |
+                (
+                    dataframe['preparechangetrendconfirm'] &
+                    dataframe['minusdi'].lt(dataframe['plusdi']) &
+                    dataframe['close'].gt(dataframe['lowsma']) &
+                    dataframe['slowsma'].gt(0)
+                )
+            ), 'sell'] = 1
         return dataframe

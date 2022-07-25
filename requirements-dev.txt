@@ -1,0 +1,32 @@
+# Include all requirements to run the bot.
+-r requirements.txt
+
+coveralls==3.3.1
+flake8==4.0.1
+flake8-tidy-imports==4.8.0
+mypy==0.961
+pre-commit==2.19.0
+pytest==7.1.2
+pytest-asyncio==0.18.3
+pytest-cov==3.0.0
+pytest-mock==3.7.0
+pytest-random-order==1.0.4
+isort==5.10.1
+# For datetime mocking
+time-machine==2.7.0
+
+# Convert jupyter notebooks to markdown documents
+nbconvert==6.5.0
+
+# mypy types
+types-cachetools==5.0.2
+types-filelock==3.2.7
+types-requests==2.27.30
+types-tabulate==0.8.9
+types-python-dateutil==2.8.17
+
+# package management
+twine==4.0.1
+keyrings.google-artifactregistry-auth==1.0.0
+keyring==23.7.0
+build==0.8.0

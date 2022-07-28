@@ -32,6 +32,7 @@ class Bot(_DECL_BASE):
 
     image = Column(String(255), nullable=False)
     version = Column(String(100), nullable=False)
+    api_url = Column(String(255), nullable=False)
     strategy = Column(String(100), nullable=True)
     exchange = Column(String(25), nullable=True)
     state = Column(Enum(State), nullable=True)

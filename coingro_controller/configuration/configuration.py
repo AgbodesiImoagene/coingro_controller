@@ -119,7 +119,7 @@ class Configuration:
         setup_logging(config)
 
     def _process_database_options(self, config: Dict[str, Any]) -> None:
-        config['cg_image'] = Configuration.cg_image_from_config(config)
+        config['cg_image'] = config['cg_image']
 
         logger.info(f'Using coingro image: "{config["cg_image"]}"')
 
@@ -156,7 +156,7 @@ class Configuration:
             config.update({'user_data_dir': self.args['user_data_dir']})
         elif 'user_data_dir' not in config:
             # Default to cwd/user_data (legacy option ...)
-            config.update({'user_data_dir': str(Path.cwd() / 'user_data')})
+            config.update({'user_data_dir': str(Path.cwd() / '/coingro/user_data')})
 
         # reset to user_data_dir so this contains the absolute path.
         config['user_data_dir'] = create_userdata_dir(config['user_data_dir'], create_dir=False)
@@ -189,30 +189,6 @@ class Configuration:
                 warnings.warn(f"DEPRECATED: {deprecated_msg}", DeprecationWarning)
 
     @staticmethod
-    def cg_image_from_config(config: Dict[str, Any]) -> str:
-        if 'cg_image' in config:
-            return config['cg_image']
-
-        if 'cg_image_config' in config:
-            cg_image_args = config['cg_image_args']
-            cg_image = ''
-
-            if 'registry_host' in cg_image_args:
-                cg_image += f'{cg_image_args["registry_host"]}'
-                if 'registry_port' in cg_image_args:
-                    cg_image += f':{cg_image_args["registry_port"]}'
-                cg_image += '/'
-
-            if 'repository' in cg_image_args:
-                cg_image += f'{cg_image_args["repository"]}/'
-
-            cg_image += f'{cg_image_args["name"]}:{cg_image_args["tag"]}'
-
-            return cg_image
-
-        raise OperationalException('No coingro image specified.')
-
-    @staticmethod
     def db_url_from_config(config: Dict[str, Any]) -> str:
         if 'db_url' in config:
             return config['db_url']
@@ -227,7 +203,7 @@ class Configuration:
                 db_args['drivername'] = 'postgresql+psycopg2'
 
             if db_args['drivername'] != 'sqlite' and 'database' not in db_args:
-                db_args['database'] = 'coingro.k8s.controller'
+                db_args['database'] = 'coingro_k8s_controller'
 
             return URL.create(**db_args).render_as_string(hide_password=False)
 

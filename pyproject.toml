@@ -52,7 +52,6 @@ exclude = [
   "**/__pycache__",
   "build_helpers/*.py",
 ]
-# ignore = ["coingro/vendor/**"]
 
 # Align pyright to mypy config
 strictParameterNoneValue = false

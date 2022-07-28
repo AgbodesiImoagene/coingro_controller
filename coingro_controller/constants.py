@@ -15,29 +15,9 @@ CONTROLLER_CONF_SCHEMA = {
     'properties': {
         'namespace': {'type': 'string'},
         'cg_image': {'type': 'string'},
-        'cg_image_config': {
-            'type': 'object',
-            'properties': {
-                'name': {'type': 'string'},
-                'repository': {'type': 'string'},
-                'tag': {'type': 'string'},
-                'registry_host': {
-                    'anyOf': [
-                        {'format': 'hostname'},
-                        {'format': 'ipv4'},
-                        {'format': 'ipv6'},
-                    ]
-                },
-                'registry_port': {
-                    'type': 'integer',
-                    'minimum': 1024,
-                    'maximum': 65535
-                },
-            },
-            'required': ['name', 'tag']
-        },
-        'cg_image_pull_secrets': {'type': 'array', 'items': {'type': 'string'}},
         'cg_env_vars': {'type': 'object'},
+        'cg_initial_state': {'type': 'string', 'enum': ['running', 'stopped']},
+        'cg_api_router_prefix': {'type': 'string'},
         'cg_api_server_port': {
             'type': 'integer',
             'minimum': 1024,
@@ -45,7 +25,7 @@ CONTROLLER_CONF_SCHEMA = {
         },
         'cg_api_server_username': {'type': 'string'},
         'cg_api_server_password': {'type': 'string'},
-        'cg_data_pvc_claim': {'type': 'string'},
+        'cg_strategies_pvc_claim': {'type': 'string'},
         'cg_version': {'type': 'string'},
         'api_server': {
             'type': 'object',
@@ -57,8 +37,6 @@ CONTROLLER_CONF_SCHEMA = {
                     'minimum': 1024,
                     'maximum': 65535
                 },
-                'jwt_secret_key': {'type': 'string'},
-                'CORS_origins': {'type': 'array', 'items': {'type': 'string'}},
                 'verbosity': {'type': 'string', 'enum': ['error', 'info']},
             },
             'required': ['enabled', 'listen_ip_address', 'listen_port']
@@ -87,8 +65,6 @@ CONTROLLER_CONF_SCHEMA = {
             'required': ['drivername']
         },
         'db_url': {'type': 'string'},
-        'encryption': {'type': 'boolean', 'default': False},
-        'initial_state': {'type': 'string', 'enum': ['running', 'stopped']},
         'internals': {
             'type': 'object',
             'default': {},

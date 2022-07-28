@@ -26,6 +26,30 @@ class Resources:
         cg_namespace.metadata = meta
         return cg_namespace
 
+    def get_coingro_user_data_pvc(self, name: str) -> client.V1Service:
+        meta = client.V1ObjectMeta()
+        meta.name = name
+        meta.namespace = self.namespace
+        meta.labels = {
+            'name': f'{name}-user-data-pvc',
+            'mount': '/coingro/user_data',
+            'app': 'coingro-bot',
+            'creator': 'coingro-controller'
+        }
+
+        resources = client.V1ResourceRequirements()
+        resources.requests = {'storage': '500Mi'}
+
+        spec = client.V1PersistentVolumeClaimSpec()
+        spec.access_modes = ['ReadWriteOnce']
+        spec.resources = resources
+
+        pvc = client.V1PersistentVolumeClaim()
+        pvc.metadata = meta
+        pvc.spec = spec
+
+        return pvc
+
     def get_coingro_service(self, name: str) -> client.V1Service:
         meta = client.V1ObjectMeta()
         meta.name = name
@@ -87,14 +111,24 @@ class Resources:
 
         data_mount = client.V1VolumeMount()
         data_mount.mount_path = '/coingro/user_data/'
-        data_mount.name = 'coingro-user-data'
+        data_mount.name = f'{name}-user-data'
 
-        pvc_claim_source = client.V1PersistentVolumeClaimVolumeSource()
-        pvc_claim_source.claim_name = 'coingro-user-data-pvc-claim'
+        strategies_mount = client.V1VolumeMount()
+        strategies_mount.mount_path = '/coingro/strategies/'
+        strategies_mount.name = f'{name}-strategies'
+
+        data_pvc_claim_source = client.V1PersistentVolumeClaimVolumeSource()
+        data_pvc_claim_source.claim_name = f'{name}-user-data-pvc'
+
+        strategies_pvc_claim_source = client.V1PersistentVolumeClaimVolumeSource()
+        strategies_pvc_claim_source.claim_name = \
+            self._config.get('cg_strategies_pvc_claim', 'strategies-pvc')
 
         cg_data_volume = client.V1Volume()
-        cg_data_volume.name = self._config.get('cg_data_pvc_claim', 'coingro-user-data')
-        cg_data_volume.persistent_volume_claim = pvc_claim_source
+        cg_data_volume.persistent_volume_claim = data_pvc_claim_source
+
+        cg_strategies_volume = client.V1Volume()
+        cg_strategies_volume.persistent_volume_claim = strategies_pvc_claim_source
 
         cg_api_server_port = client.V1ContainerPort()
         cg_api_server_port.name = 'api-server-port'
@@ -106,7 +140,7 @@ class Resources:
         cg_container.env = env_list
         cg_container.liveness_probe = liveness_probe
         cg_container.startup_probe = startup_probe
-        cg_container.volume_mount = [data_mount]
+        cg_container.volume_mount = [data_mount, strategies_mount]
         cg_container.ports = [cg_api_server_port]
 
         meta = client.V1ObjectMeta()
@@ -119,16 +153,9 @@ class Resources:
             'creator': 'coingro-controller'
         }
 
-        image_pull_secrets = []
-        if 'cg_image_pull_secrets' in self._config:
-            image_pull_secret_object = client.V1LocalObjectReference()
-            image_pull_secret_object.name = self._config['cg_image_pull_secrets']
-            image_pull_secrets.append(image_pull_secret_object)
-
         spec = client.V1PodSpec()
         spec.containers = [cg_container]
-        spec.volumes = [cg_data_volume]
-        spec.image_pull_secrets = image_pull_secrets
+        spec.volumes = [cg_data_volume, cg_strategies_volume]
 
         cg_pod = client.V1Pod()
         cg_pod.api_version = 'v1'

@@ -31,10 +31,25 @@ class Client:
 
     def create_coingro_instance(self,
                                 name: str,
+                                create_pvc: bool = False,
                                 env_vars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        _ = self._create_coingro_service(name)
-        cg_pod = self._create_coingro_pod(name, env_vars)
-        return cg_pod
+        try:
+            if create_pvc:
+                self._create_coingro_data_pvc(name)
+            self._create_coingro_service(name)
+            cg_pod = self._create_coingro_pod(name, env_vars)
+            return cg_pod
+        except Exception as e:
+            logger.error(f"Could not create coingro instance {name} due to {e}.")
+            return {}
+
+    @retrier(retries=3, sleep_time=1)
+    def _create_coingro_data_pvc(self, name: str) -> Dict[str, Any]:
+        cg_pvc = self.resources.get_coingro_user_data_pvc(name)
+        try:
+            return self.core_api.create_namespaced_persistent_volume_claim(self.namespace, cg_pvc)
+        except Exception as e:  # Get specific exceptions
+            raise TemporaryError(e)
 
     @retrier(retries=3, sleep_time=1)
     def _create_coingro_service(self, name: str) -> Dict[str, Any]:
@@ -66,10 +81,23 @@ class Client:
     #   except Exception as e: # Get specific exceptions
     #       raise TemporaryError(e)
 
-    def delete_coingro_instance(self, name: str) -> Dict[str, Any]:
-        cg_pod = self._delete_coingro_pod(name)
-        _ = self._delete_coingro_service(name)
-        return cg_pod
+    def delete_coingro_instance(self, name: str, delete_pvc: bool = False) -> Dict[str, Any]:
+        try:
+            cg_pod = self._delete_coingro_pod(name)
+            self._delete_coingro_service(name)
+            if delete_pvc:
+                self._delete_coingro_data_pvc(name)
+            return cg_pod
+        except Exception as e:
+            logger.error(f"Could not delete coingro instance {name} due to {e}.")
+            return {}
+
+    @retrier(retries=3, sleep_time=1)
+    def _delete_coingro_data_pvc(self, name: str) -> Dict[str, Any]:
+        try:
+            return self.core_api.delete_namespaced_persistent_volume_claim(name, self.namespace)
+        except Exception as e:  # Get specific exceptions
+            raise TemporaryError(e)
 
     @retrier(retries=3, sleep_time=1)
     def _delete_coingro_service(self, name: str) -> Dict[str, Any]:

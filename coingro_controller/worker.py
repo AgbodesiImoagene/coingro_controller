@@ -58,7 +58,7 @@ class Worker:
         internals_config = self._config.get('internals', {})
         self._throttle_secs = internals_config.get('process_throttle_secs',
                                                    PROCESS_THROTTLE_SECS)
-        self._heartbeat_interval = internals_config.get('heartbeat_interval', 60)
+        self._heartbeat_interval = internals_config.get('heartbeat_interval', 120)
 
         self._sd_notify = sdnotify.SystemdNotifier() if \
             self._config.get('internals', {}).get('sd_notify', False) else None

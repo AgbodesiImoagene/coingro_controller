@@ -75,3 +75,13 @@ def get_bot(bot_id: str, user: User = Depends(get_user)) -> Bot:
         )
 
     return bot
+
+
+def get_active_bot(bot: Bot = Depends(get_bot)) -> Bot:
+    if not bot.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Bot is not active."
+        )
+
+    return bot

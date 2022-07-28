@@ -1,2 +1,2 @@
-coingro[all]
+./coingro[all]
 kubernetes==24.2.0

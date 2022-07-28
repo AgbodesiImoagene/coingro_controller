@@ -2,6 +2,7 @@ import logging
 from typing import List, Optional
 
 from coingro.constants import SUPPORTED_FIAT, SUPPORTED_STAKE_CURRENCIES
+from coingro.enums import State as StateEnum
 from coingro.exchange.common import SUPPORTED_EXCHANGES
 from coingro.rpc import RPC
 from coingro.rpc.api_server.api_schemas import (Balances, BlacklistPayload, BlacklistResponse,
@@ -48,7 +49,7 @@ def ping():
 def version(bot=Depends(get_bot), client=Depends(get_client)):
     """ Version info"""
     try:
-        return client.version(bot.bot_id)
+        return client.version(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -63,7 +64,7 @@ def controller_version():
 def balance(bot=Depends(get_bot), client=Depends(get_client)):
     """Account Balances"""
     try:
-        return client.balance(bot.bot_id)
+        return client.balance(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -71,7 +72,7 @@ def balance(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/count', response_model=Count, tags=['info'])
 def count(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.count(bot.bot_id)
+        return client.count(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -79,7 +80,7 @@ def count(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/performance', response_model=List[PerformanceEntry], tags=['info'])
 def performance(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.performance(bot.bot_id)
+        return client.performance(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -87,7 +88,7 @@ def performance(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/profit', response_model=Profit, tags=['info'])
 def profit(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.profit(bot.bot_id)
+        return client.profit(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -95,7 +96,7 @@ def profit(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/stats', response_model=Stats, tags=['info'])
 def stats(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.stats(bot.bot_id)
+        return client.stats(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -103,7 +104,7 @@ def stats(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/daily', response_model=Daily, tags=['info'])
 def daily(timescale: int = 7, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.daily(bot.bot_id, timescale)
+        return client.daily(bot.api_url, timescale)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -111,7 +112,7 @@ def daily(timescale: int = 7, bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/status', response_model=List[OpenTradeSchema], tags=['info'])
 def status(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.status(bot.bot_id)
+        return client.status(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -121,7 +122,7 @@ def status(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/trades', tags=['info', 'trading'])
 def trades(limit: int = 500, offset: int = 0, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.trades(bot.bot_id, limit, offset)
+        return client.trades(bot.api_url, limit, offset)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -129,7 +130,7 @@ def trades(limit: int = 500, offset: int = 0, bot=Depends(get_bot), client=Depen
 @router.get('/trade/{tradeid}', response_model=OpenTradeSchema, tags=['info', 'trading'])
 def trade(tradeid: int = 0, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.trade(bot.bot_id, tradeid)
+        return client.trade(bot.api_url, tradeid)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -137,7 +138,7 @@ def trade(tradeid: int = 0, bot=Depends(get_bot), client=Depends(get_client)):
 @router.delete('/trades/{tradeid}', response_model=DeleteTrade, tags=['info', 'trading'])
 def trades_delete(tradeid: int, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.delete_trade(bot.bot_id, tradeid)
+        return client.delete_trade(bot.api_url, tradeid)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -151,7 +152,7 @@ def trades_delete(tradeid: int, bot=Depends(get_bot), client=Depends(get_client)
 @router.get('/show_config', response_model=ShowConfig, tags=['info'])
 def show_config(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.show_config(bot.bot_id)
+        return client.show_config(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -162,7 +163,7 @@ def force_entry(payload: ForceEnterPayload, bot=Depends(get_bot), client=Depends
     ordertype = payload.ordertype.value if payload.ordertype else None
 
     try:
-        return client.forceenter(bot.bot_id, payload.pair, side, payload.price, ordertype,
+        return client.forceenter(bot.api_url, payload.pair, side, payload.price, ordertype,
                                  payload.stake_amount, payload.entry_tag)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
@@ -173,7 +174,7 @@ def forceexit(payload: ForceExitPayload, bot=Depends(get_bot), client=Depends(ge
     ordertype = payload.ordertype.value if payload.ordertype else None
 
     try:
-        return client.forceexit(bot.bot_id, payload.tradeid, ordertype)
+        return client.forceexit(bot.api_url, payload.tradeid, ordertype)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -181,7 +182,7 @@ def forceexit(payload: ForceExitPayload, bot=Depends(get_bot), client=Depends(ge
 @router.get('/blacklist', response_model=BlacklistResponse, tags=['info', 'pairlist'])
 def blacklist(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.blacklist(bot.bot_id)
+        return client.blacklist(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -189,7 +190,7 @@ def blacklist(bot=Depends(get_bot), client=Depends(get_client)):
 @router.post('/blacklist', response_model=BlacklistResponse, tags=['info', 'pairlist'])
 def blacklist_post(payload: BlacklistPayload, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.blacklist(bot.bot_id, *(payload.blacklist))
+        return client.blacklist(bot.api_url, *(payload.blacklist))
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -199,7 +200,7 @@ def blacklist_delete(pairs_to_delete: List[str] = Query([]),
                      bot=Depends(get_bot), client=Depends(get_client)):
     """Provide a list of pairs to delete from the blacklist"""
     try:
-        return client.delete_blacklist(bot.bot_id, pairs_to_delete)
+        return client.delete_blacklist(bot.api_url, pairs_to_delete)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -207,7 +208,7 @@ def blacklist_delete(pairs_to_delete: List[str] = Query([]),
 @router.get('/whitelist', response_model=WhitelistResponse, tags=['info', 'pairlist'])
 def whitelist(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.whitelist(bot.bot_id)
+        return client.whitelist(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -215,7 +216,7 @@ def whitelist(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/locks', response_model=Locks, tags=['info', 'locks'])
 def locks(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.locks(bot.bot_id)
+        return client.locks(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -223,7 +224,7 @@ def locks(bot=Depends(get_bot), client=Depends(get_client)):
 @router.delete('/locks/{lockid}', response_model=Locks, tags=['info', 'locks'])
 def delete_lock(lockid: int, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.delete_lock(bot.bot_id, lockid)
+        return client.delete_lock(bot.api_url, lockid)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -231,7 +232,7 @@ def delete_lock(lockid: int, bot=Depends(get_bot), client=Depends(get_client)):
 @router.post('/locks/delete', response_model=Locks, tags=['info', 'locks'])
 def delete_lock_pair(payload: DeleteLockRequest, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.delete_lock(bot.bot_id, payload.lockid, payload.pair)
+        return client.delete_lock(bot.api_url, payload.lockid, payload.pair)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -239,7 +240,7 @@ def delete_lock_pair(payload: DeleteLockRequest, bot=Depends(get_bot), client=De
 @router.get('/logs', response_model=Logs, tags=['info'])
 def logs(limit: Optional[int] = None, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.logs(bot.bot_id, limit)
+        return client.logs(bot.api_url, limit)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -247,7 +248,9 @@ def logs(limit: Optional[int] = None, bot=Depends(get_bot), client=Depends(get_c
 @router.post('/start', response_model=StatusMsg, tags=['bot control'])
 def start(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.start(bot.bot_id)
+        res = client.start(bot.api_url)
+        bot.state = StateEnum.RUNNING
+        return res
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -255,7 +258,9 @@ def start(bot=Depends(get_bot), client=Depends(get_client)):
 @router.post('/stop', response_model=StatusMsg, tags=['bot control'])
 def stop(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.stop(bot.bot_id)
+        res = client.stop(bot.api_url)
+        bot.state = StateEnum.STOPPED
+        return res
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -263,7 +268,7 @@ def stop(bot=Depends(get_bot), client=Depends(get_client)):
 @router.post('/stopbuy', response_model=StatusMsg, tags=['bot control'])
 def stop_buy(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.stopbuy(bot.bot_id)
+        return client.stopbuy(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -271,7 +276,7 @@ def stop_buy(bot=Depends(get_bot), client=Depends(get_client)):
 @router.post('/reload_config', response_model=StatusMsg, tags=['bot control'])
 def reload_config(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.reload_config(bot.bot_id)
+        return client.reload_config(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -343,7 +348,7 @@ def get_strategy(strategy: str):
 @router.get('/sysinfo', response_model=SysInfo, tags=['info'])
 def sysinfo(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.sysinfo(bot.bot_id)
+        return client.sysinfo(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -351,7 +356,7 @@ def sysinfo(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/health', response_model=Health, tags=['info'])
 def health(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.health(bot.bot_id)
+        return client.health(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -359,7 +364,7 @@ def health(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/state', response_model=State, tags=['info'])
 def state(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.state(bot.bot_id)
+        return client.state(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -399,7 +404,10 @@ def update_exchange(payload: UpdateExchangePayload,
                     client=Depends(get_client)):
     kwargs = payload.dict(exclude_none=True)
     try:
-        return client.update_exchange(bot.bot_id, **kwargs)
+        res = client.update_exchange(bot.api_url, **kwargs)
+        if 'name' in kwargs:
+            bot.exchange = kwargs['name']
+        return res
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -410,7 +418,10 @@ def update_strategy(payload: UpdateStrategyPayload,
                     client=Depends(get_client)):
     kwargs = payload.dict(exclude_none=True)
     try:
-        return client.update_strategy(bot.bot_id, **kwargs)
+        res = client.update_strategy(bot.api_url, **kwargs)
+        if 'strategy' in kwargs:
+            bot.strategy = kwargs['strategy']
+        return res
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -421,7 +432,7 @@ def update_general_settings(payload: UpdateSettingsPayload,
                             client=Depends(get_client)):
     kwargs = payload.dict(exclude_none=True)
     try:
-        return client.update_settings(bot.bot_id, **kwargs)
+        return client.update_settings(bot.api_url, **kwargs)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -429,7 +440,7 @@ def update_general_settings(payload: UpdateSettingsPayload,
 @router.post('/reset_original_config', response_model=StatusMsg, tags=['bot control'])
 def reset_original_config(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.reset_original_config(bot.bot_id)
+        return client.reset_original_config(bot.api_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 

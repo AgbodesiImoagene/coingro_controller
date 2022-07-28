@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
 
-from coingro.constants import USERPATH_STRATEGIES
 from coingro.resolvers import StrategyResolver
 
 from coingro_controller.persistence import Bot, Strategy
@@ -21,7 +20,7 @@ class StrategyManager:
         self.create_strategies()
 
     def get_strategy_objects(self) -> List[Dict[str, Any]]:
-        directory = Path(self._config.get('strategy_path', USERPATH_STRATEGIES))
+        directory = Path(self._config.get('strategy_path', '/coingro/strategies'))
         return StrategyResolver.search_all_objects(
             directory, False, self._config.get('recursive_strategy_search', False))
 
@@ -48,9 +47,10 @@ class StrategyManager:
         for strategy in Strategy.all():
             if (not strategy.latest_refresh or datetime.utcnow() - strategy.latest_refresh >
                     timedelta(days=1)):
-                name = strategy.name
+                api_url = strategy.bot.api_url
+                strategy.bot.strategy = strategy.name
                 try:
-                    data = self.client.profit(name)
+                    data = self.client.profit(api_url)
                     strategy.profit_ratio_mean = data['profit_all_ratio_mean']
                     strategy.profit_ratio_sum = data['profit_all_ratio_sum']
                     strategy.profit_ratio = data['profit_all_ratio']
@@ -63,15 +63,15 @@ class StrategyManager:
                     strategy.losing_trades = data['losing_trades']
                     strategy.trade_count = strategy.winning_trades + strategy.losing_trades
 
-                    data = self.client.timeunit_profit(name, 'days')
+                    data = self.client.timeunit_profit(api_url, 'days')
                     strategy.daily_profit = data['data'][0]['rel_profit']
                     strategy.daily_trade_count = data['data'][0]['trade_count']
 
-                    data = self.client.timeunit_profit(name, 'weeks')
+                    data = self.client.timeunit_profit(api_url, 'weeks')
                     strategy.weekly_profit = data['data'][0]['rel_profit']
                     strategy.weekly_trade_count = data['data'][0]['trade_count']
 
-                    data = self.client.timeunit_profit(name, 'months')
+                    data = self.client.timeunit_profit(api_url, 'months')
                     strategy.monthly_profit = data['data'][0]['rel_profit']
                     strategy.monthly_trade_count = data['data'][0]['trade_count']
 
@@ -79,4 +79,5 @@ class StrategyManager:
 
                     strategy.commit()
                 except Exception as e:
-                    logger.warning(f"Could not refresh perfomance stats for {name} due to {e}")
+                    logger.warning("Could not refresh perfomance "
+                                   f"stats for {strategy.name} due to {e}")

@@ -34,8 +34,7 @@ class Controller(LoggingMixin):
         self.strategy_manager: StrategyManager = StrategyManager(self)
         LoggingMixin.__init__(self, logger)
 
-        initial_state = self.config.get('initial_state')
-        self.state = State[initial_state.upper()] if initial_state else State.STOPPED
+        self.state = State.RUNNING
 
     def cleanup(self) -> None:
         """
@@ -95,7 +94,8 @@ class Controller(LoggingMixin):
         deleted = True if bot and bot.deleted_at else False
 
         if name not in running_bot_names and not deleted:
-            self.k8s_client.create_coingro_instance(name, env_vars)
+            create_pvc = False if bot else True
+            self.k8s_client.create_coingro_instance(name, create_pvc, env_vars)
 
             if bot:
                 bot.is_active = True
@@ -103,8 +103,13 @@ class Controller(LoggingMixin):
                 bot = Bot(bot_id=name,
                           user_id=user,
                           image=self.config['cg_image'],
+                          api_url=f"{name}/{self.config['cg_api_router_prefix']}"
+                                  if 'cg_api_router_prefix' in self.config else name,
                           version=self.config['cg_version'],
+                          is_active=True,
                           is_strategy=is_strategy)
+                if 'cg_initial_state' in self.config:
+                    bot.state = State[self.config['cg_initial_state'].upper()]
             Bot.query.session.add(bot)
             Bot.commit()
 
@@ -116,7 +121,8 @@ class Controller(LoggingMixin):
             running_bots = self.k8s_client.get_coingro_instances()
             running_bot_names = [bot['metadata']['name'] for bot in running_bots]
             if name in running_bot_names:
-                self.k8s_client.delete_coingro_instance(name)
+                delete_pvc = True if delete else False
+                self.k8s_client.delete_coingro_instance(name, delete_pvc)
 
             bot.is_active = False
             if delete:

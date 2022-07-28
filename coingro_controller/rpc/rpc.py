@@ -11,7 +11,6 @@ from coingro.rpc import RPCException
 from coingro.rpc.fiat_convert import CryptoToFiatConverter
 from dateutil.tz import tzlocal
 
-from coingro_controller.controller import Controller
 from coingro_controller.persistence import Strategy
 from coingro_controller.rpc.client import CoingroClient
 
@@ -32,7 +31,7 @@ class RPC:
         :param coingro: Instance of a coingro controller
         :return: None
         """
-        self._controller: Controller = controller
+        self._controller = controller
         self._client: CoingroClient = controller.coingro_client
         self._config: Dict[str, Any] = controller.config
 

@@ -33,7 +33,6 @@ def main(sysargv: List[str] = None) -> None:
         arguments = ControllerArguments(sysargv)
         args = arguments.get_parsed_arg()
 
-        logger.info(args)
         # Call subcommand.
         if 'func' in args:
             return_code = args['func'](args)

@@ -38,8 +38,7 @@ class StrategyManager:
                                     category=strategy_class.__category__,
                                     tags=','.join(strategy_class.__tags__),
                                     short_description=strategy_class.__short_description__,
-                                    long_description=strategy_class.__long_description__,
-                                    category=strategy_class.__category__)
+                                    long_description=strategy_class.__long_description__)
                 Strategy.query.session.add(strategy)
                 Strategy.commit()
 

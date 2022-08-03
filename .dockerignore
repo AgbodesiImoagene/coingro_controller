@@ -10,8 +10,6 @@ docker/
 .pylintrc
 .travis.yml
 CONTRIBUTING.md
-MANIFEST.in
-README.md
 coingro_controller.service
 coingro_controller.egg-info
 

@@ -4,7 +4,6 @@ from typing import List, Optional
 from coingro.constants import SUPPORTED_FIAT, SUPPORTED_STAKE_CURRENCIES
 from coingro.enums import State as StateEnum
 from coingro.exchange.common import SUPPORTED_EXCHANGES
-from coingro.rpc import RPC
 from coingro.rpc.api_server.api_schemas import (Balances, BlacklistPayload, BlacklistResponse,
                                                 Count, Daily, DeleteLockRequest, DeleteTrade,
                                                 ExchangeInfo, ForceEnterPayload, ForceEnterResponse,
@@ -18,6 +17,9 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.exceptions import HTTPException
 
 from coingro_controller import __version__
+from coingro_controller.rpc import RPC
+from coingro_controller.rpc.api_server.api_schemas import (BotStatus, StrategyListResponse,
+                                                           StrategyResponse)
 from coingro_controller.rpc.api_server.deps import get_bot, get_client, get_rpc, get_user
 
 
@@ -305,14 +307,14 @@ def reload_config(bot=Depends(get_bot), client=Depends(get_client)):
 
 
 # change response models of the following two
-@router.get('/strategies')  # , response_model=StrategyListResponse, tags=['strategy'])
+@router.get('/strategies', response_model=StrategyListResponse, tags=['info', 'strategy'])
 def list_strategies():
     return RPC._rpc_list_strategies()
 
 
-@router.get('/strategy/{strategy}')  # , response_model=StrategyResponse, tags=['strategy'])
+@router.get('/strategy/{strategy}', response_model=StrategyResponse, tags=['info', 'strategy'])
 def get_strategy(strategy: str):
-    return RPC._rpc_get_strategy()
+    return RPC._rpc_get_strategy(strategy)
 
 
 # @router.get('/available_pairs', response_model=AvailablePairs, tags=['candle data'])
@@ -445,21 +447,21 @@ def reset_original_config(bot=Depends(get_bot), client=Depends(get_client)):
         raise HTTPException(status_code=500, detail=e)
 
 
-@router.post('/create_bot', tags=['bot control'])
+@router.post('/create_bot', response_model=BotStatus, tags=['bot control'])
 def create_bot(user=Depends(get_user), rpc=Depends(get_rpc)):
-    return rpc._create_bot(user.id)
+    return rpc._rpc_create_bot(user.id)
 
 
 @router.post('/activate_bot', response_model=StatusMsg, tags=['bot control'])
 def activate_bot(bot=Depends(get_bot), rpc=Depends(get_rpc)):
-    return rpc._activate_bot(bot.id)
+    return rpc._rpc_activate_bot(bot.bot_id)
 
 
 @router.post('/deactivate_bot', response_model=StatusMsg, tags=['bot control'])
 def deactivate_bot(bot=Depends(get_bot), rpc=Depends(get_rpc)):
-    return rpc._deactivate_bot(bot.id)
+    return rpc._rpc_deactivate_bot(bot.bot_id)
 
 
 @router.post('/delete_bot', response_model=StatusMsg, tags=['bot control'])
 def delete_bot(bot=Depends(get_bot), rpc=Depends(get_rpc)):
-    return rpc._delete_bot(bot.id)
+    return rpc._rpc_delete_bot(bot.bot_id)

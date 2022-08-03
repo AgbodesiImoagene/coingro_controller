@@ -3,6 +3,7 @@ Main Coingro controller class.
 """
 import logging
 from datetime import datetime
+# from time import sleep
 from typing import Any, Dict, Optional
 
 from coingro.enums import State
@@ -11,7 +12,7 @@ from coingro.mixins import LoggingMixin
 from coingro_controller import __version__
 from coingro_controller.k8s import Client
 from coingro_controller.misc import generate_uid
-from coingro_controller.persistence import Bot, cleanup_db, init_db
+from coingro_controller.persistence import Bot, Strategy, cleanup_db, init_db
 from coingro_controller.rpc import CoingroClient, RPCManager
 from coingro_controller.strategy_manager import StrategyManager
 
@@ -35,6 +36,7 @@ class Controller(LoggingMixin):
         LoggingMixin.__init__(self, logger)
 
         self.state = State.RUNNING
+        # sleep(120)  # Give pods enough time to startup. Find better method.
 
     def cleanup(self) -> None:
         """
@@ -69,10 +71,21 @@ class Controller(LoggingMixin):
 
     def check_bots(self) -> None:
         active_bots = Bot.get_active_bots()
-        active_bot_names = [bot.bot_id for bot in active_bots]
 
-        for bot_name in active_bot_names:
-            self.create_bot(bot_name)
+        for bot in active_bots:
+            bot_id = bot.bot_id
+            instance = self.k8s_client.get_coingro_instance(bot_id.lower())
+            status = instance.status.phase if instance else None
+            if status != 'Running':
+                if bot.is_strategy:
+                    strategy = Strategy.strategy_by_bot_id(bot_id)
+                    env = {
+                        'COINGRO__STRATEGY': strategy.name,
+                        'COINGRO__INITIAL_STATE': 'running'
+                    } if strategy else None
+                    self.create_bot(bot_id, env_vars=env)
+                else:
+                    self.create_bot(bot_id)
 
     def create_bot(self,
                    name: Optional[str] = None,
@@ -81,35 +94,45 @@ class Controller(LoggingMixin):
                    env_vars: Optional[Dict[str, Any]] = None) -> Optional[str]:
         if not name:
             uid = generate_uid()
-            name = f'coingro-bot-{uid}'
+            name = f'bot-{uid}'
             while Bot.bot_by_id(name):
                 uid = generate_uid()
-                name = f'coingro-bot-{uid}'
+                name = f'bot-{uid}'
+
+        name = name.lower()
 
         bot = Bot.bot_by_id(name)
 
-        running_bots = self.k8s_client.get_coingro_instances()
-        running_bot_names = [bot['metadata']['name'] for bot in running_bots]
+        instance = self.k8s_client.get_coingro_instance(name)
+        status = instance.status.phase if instance else None
+        is_deleted = True if bot and bot.deleted_at else False
 
-        deleted = True if bot and bot.deleted_at else False
+        if instance:
+            logger.info(f'Bot {name} status: {status}')
 
-        if name not in running_bot_names and not deleted:
-            create_pvc = False if bot else True
-            self.k8s_client.create_coingro_instance(name, create_pvc, env_vars)
-
-            if bot:
-                bot.is_active = True
+        if status != 'Running' and not is_deleted:
+            if instance:
+                self.k8s_client.replace_coingro_instance(name, env_vars)
+                logger.info(f"Restarted coingro instance {name}.")
             else:
+                self.k8s_client.create_coingro_instance(name, env_vars)
+                logger.info(f"Created coingro instance {name}.")
+
+            if not bot:
                 bot = Bot(bot_id=name,
                           user_id=user,
-                          image=self.config['cg_image'],
-                          api_url=f"{name}/{self.config['cg_api_router_prefix']}"
-                                  if 'cg_api_router_prefix' in self.config else name,
-                          version=self.config['cg_version'],
-                          is_active=True,
                           is_strategy=is_strategy)
-                if 'cg_initial_state' in self.config:
+
+                if is_strategy:
+                    bot.state = State['RUNNING']
+                elif 'cg_initial_state' in self.config:
                     bot.state = State[self.config['cg_initial_state'].upper()]
+
+            bot.is_active = True
+            bot.image = self.config['cg_image']
+            bot.version = self.config['cg_version']
+            bot.api_url = f"http://{name}/{self.config['cg_api_router_prefix']}" \
+                          if 'cg_api_router_prefix' in self.config else f'http://{name}'
             Bot.query.session.add(bot)
             Bot.commit()
 
@@ -118,13 +141,11 @@ class Controller(LoggingMixin):
     def deactivate_bot(self, name: str, delete: bool = False):
         bot = Bot.bot_by_id(name)
         if bot:
-            running_bots = self.k8s_client.get_coingro_instances()
-            running_bot_names = [bot['metadata']['name'] for bot in running_bots]
-            if name in running_bot_names:
-                delete_pvc = True if delete else False
-                self.k8s_client.delete_coingro_instance(name, delete_pvc)
+            self.k8s_client.delete_coingro_instance(name)
+            logger.info(f"Deleted coingro instance {name}.")
 
             bot.is_active = False
             if delete:
                 bot.deleted_at = datetime.utcnow()
             Bot.commit()
+        return bot.bot_id if bot else None

@@ -26,7 +26,7 @@ class RPCManager:
         # Enable local rest api server for cmd line control
         if config.get('api_server', {}).get('enabled', False):
             logger.info('Enabling rpc.api_server')
-            from controller.rpc.api_server import ApiServer
+            from coingro_controller.rpc.api_server import ApiServer
             apiserver = ApiServer(config)
             apiserver.add_rpc_handler(self._rpc)
             self.registered_modules.append(apiserver)

@@ -5,9 +5,9 @@ class Role(Enum):
     """
     User roles
     """
-    USER = 'user'
-    ADMIN = 'admin'
-    SUPERADMIN = 'superadmin'
+    user = 'user'
+    admin = 'admin'
+    superadmin = 'superadmin'
 
     def __str__(self):
         return f"{self.name.lower()}"

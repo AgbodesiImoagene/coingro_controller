@@ -67,7 +67,7 @@ class ControllerArguments:
         from coingro_controller.commands import start_controller
 
         # Add controller subcommand
-        start_controller_cmd = subparsers.add_parser('start-controller',
+        start_controller_cmd = subparsers.add_parser('start',
                                                      help='Start coingro controller '
                                                      'within kubernetes cluster.')
         start_controller_cmd.set_defaults(func=start_controller)

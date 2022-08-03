@@ -49,9 +49,8 @@ def is_webserver_mode(config=Depends(get_config)):
     return None
 
 
-def get_user(user_id: Optional[str] = Header(None)) -> User:
-    user_id = user_id if user_id else ''
-    user = User.user_by_id(user_id)
+def get_user(userId: int = Header(None)) -> User:
+    user = User.user_by_id(userId)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -60,15 +59,15 @@ def get_user(user_id: Optional[str] = Header(None)) -> User:
     return user
 
 
-def get_bot(bot_id: str, user: User = Depends(get_user)) -> Bot:
-    bot = Bot.bot_by_id(bot_id)
+def get_bot(botId: str, user: User = Depends(get_user)) -> Bot:
+    bot = Bot.bot_by_id(botId)
     if (not bot) or (bot.deleted_at):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Bot not found."
         )
 
-    if (user.role == Role.USER) and (bot.user != user):
+    if (user.role == Role.user) and (bot.user_id != user.id):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized."

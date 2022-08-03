@@ -1,6 +1,7 @@
 DEFAULT_CONFIG = 'config.json'
 DEFAULT_DB_URL = 'sqlite:///controllerv1.sqlite'
 DEFAULT_NAMESPACE = 'coingro'
+USER_DATA_DIR = '/coingro/user_data'
 
 TELEGRAM_SETTING_OPTIONS = ['on', 'off', 'silent']
 WEBHOOK_FORMAT_OPTIONS = ['form', 'json', 'raw']
@@ -8,6 +9,9 @@ WEBHOOK_FORMAT_OPTIONS = ['form', 'json', 'raw']
 DRIVERNAME_OPTIONS = ['mysql', 'postgresql', 'sqlite']
 
 ENV_VAR_PREFIX = 'COINGRO_CONTROLLER__'
+
+PROCESS_THROTTLE_SECS = 300
+RETRY_TIMEOUT = 30
 
 # Required json-schema for user specified config
 CONTROLLER_CONF_SCHEMA = {
@@ -25,8 +29,10 @@ CONTROLLER_CONF_SCHEMA = {
         },
         'cg_api_server_username': {'type': 'string'},
         'cg_api_server_password': {'type': 'string'},
+        'cg_user_data_pvc_claim': {'type': 'string'},
         'cg_strategies_pvc_claim': {'type': 'string'},
         'cg_version': {'type': 'string'},
+        'cguser_group_id': {'type': 'integer'},
         'api_server': {
             'type': 'object',
             'properties': {
@@ -74,6 +80,7 @@ CONTROLLER_CONF_SCHEMA = {
                 'sd_notify': {'type': 'boolean'},
             }
         },
+        'recursive_strategy_search': {'type': 'boolean'}
     },
     'required': ['cg_image', 'cg_version', 'api_server']
 }

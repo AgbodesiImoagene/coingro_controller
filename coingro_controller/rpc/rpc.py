@@ -85,7 +85,7 @@ class RPC:
             raise RPCException(str(e)) from e
         return res
 
-    def _rpc_create_bot(self, user_id: str) -> Dict[str, Any]:
+    def _rpc_create_bot(self, user_id: int) -> Dict[str, Any]:
         try:
             bot_id = self._controller.create_bot(user=user_id)
             return {

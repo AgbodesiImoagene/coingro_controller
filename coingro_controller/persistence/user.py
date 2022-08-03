@@ -26,12 +26,12 @@ class User(_DECL_BASE):  # Add collate to string columns
     id = Column(BigInteger, primary_key=True)
 
     bots = relationship("Bot", order_by="Bot.id", cascade="all, delete-orphan",
-                        lazy="joined", back_populates="users")
+                        lazy="joined", back_populates="user")
 
     fullname = Column(String(255), nullable=False)
     email = Column(String(255), nullable=False, unique=True)
     username = Column(String(255), nullable=False, unique=True)
-    role = Column(Enum(Role), nullable=False, default=Role.USER)
+    role = Column(Enum(Role), nullable=False, default=Role.user)
 
     authCode = Column(String(255), nullable=True)
     email_verified_at = Column(DateTime, nullable=True)
@@ -84,12 +84,12 @@ class User(_DECL_BASE):  # Add collate to string columns
         return resp
 
     @staticmethod
-    def user_by_id(user_id: str) -> Optional['User']:
+    def user_by_id(user_id: int) -> Optional['User']:
         """
         Retrieve user based on user_id
         :return: User or None
         """
-        return User.query.filter(User.user_id == user_id).first()
+        return User.query.filter(User.id == user_id).first()
 
     @staticmethod
     def commit():

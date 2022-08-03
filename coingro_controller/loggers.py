@@ -7,6 +7,8 @@ from coingro.constants import USERPATH_LOGS
 from coingro.exceptions import OperationalException
 from coingro.loggers import CGBufferingHandler
 
+from coingro_controller.constants import USER_DATA_DIR
+
 
 logger = logging.getLogger(__name__)
 LOGFORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -91,7 +93,7 @@ def setup_logging(config: Dict[str, Any]) -> None:
         else:
             import coingro_controller
             if logfile == 'default' or coingro_controller.__env__ == 'kubernetes':
-                logfile = f'{config["user_data_dir"]}/' + \
+                logfile = f'{config.get("user_data_dir", USER_DATA_DIR)}/' + \
                           f'{USERPATH_LOGS}/{coingro_controller.__id__}.log'
             handler_rf = get_existing_handlers(RotatingFileHandler)
             if handler_rf:

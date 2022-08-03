@@ -119,8 +119,6 @@ class Configuration:
         setup_logging(config)
 
     def _process_database_options(self, config: Dict[str, Any]) -> None:
-        config['cg_image'] = config['cg_image']
-
         logger.info(f'Using coingro image: "{config["cg_image"]}"')
 
         if 'cg_api_server_port' not in config:

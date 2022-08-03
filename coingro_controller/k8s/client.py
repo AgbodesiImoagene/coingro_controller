@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from coingro.exceptions import TemporaryError
+from coingro.exceptions import TemporaryError  # , OperationalException
 from coingro.misc import retrier
 from kubernetes import client
 from kubernetes import config as k8s_config
@@ -21,94 +21,111 @@ class Client:
         k8s_config.load_incluster_config()
         self.core_api = client.CoreV1Api()
 
-    def get_coingro_instance(self, name: str) -> Dict[str, Any]:
-        return self.core_api.read_namespaced_pod(name, self.namespace)
+    def get_coingro_instance(self, name: str):
+        try:
+            return self.core_api.read_namespaced_pod(name, self.namespace)
+        except Exception:
+            return None
+
+    def _get_coingro_service(self, name: str):
+        try:
+            return self.core_api.read_namespaced_service(name, self.namespace)
+        except Exception:
+            return None
 
     def get_coingro_instances(self) -> List[Any]:
         res = self.core_api.list_namespaced_pod(self.namespace)
-        items = res['items'] if 'items' in res else []
+        items = res.items if res else []
         return items
 
-    def create_coingro_instance(self,
-                                name: str,
-                                create_pvc: bool = False,
-                                env_vars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_coingro_instance(self, name: str, env_vars: Optional[Dict[str, Any]] = None):
         try:
-            if create_pvc:
-                self._create_coingro_data_pvc(name)
             self._create_coingro_service(name)
             cg_pod = self._create_coingro_pod(name, env_vars)
             return cg_pod
         except Exception as e:
-            logger.error(f"Could not create coingro instance {name} due to {e}.")
-            return {}
+            logger.error(f"Could not create coingro instance {name} due to: {e}.")
+            # raise OperationalException(e)
 
     @retrier(retries=3, sleep_time=1)
-    def _create_coingro_data_pvc(self, name: str) -> Dict[str, Any]:
+    def _create_coingro_data_pvc(self, name: str):
         cg_pvc = self.resources.get_coingro_user_data_pvc(name)
         try:
             return self.core_api.create_namespaced_persistent_volume_claim(self.namespace, cg_pvc)
         except Exception as e:  # Get specific exceptions
-            raise TemporaryError(e)
+            raise TemporaryError(f"error {e} creating persistent volume claim")
 
     @retrier(retries=3, sleep_time=1)
-    def _create_coingro_service(self, name: str) -> Dict[str, Any]:
+    def _create_coingro_service(self, name: str):
         cg_service = self.resources.get_coingro_service(name)
         try:
-            return self.core_api.create_namespaced_service(self.namespace, cg_service)
+            service = self._get_coingro_service(name)
+            if not service:
+                service = self.core_api.create_namespaced_service(self.namespace, cg_service)
+            return service
         except Exception as e:  # Get specific exceptions
-            raise TemporaryError(e)
+            raise TemporaryError(f"error {e} creating service")
 
     @retrier(retries=3, sleep_time=1)
-    def _create_coingro_pod(self,
-                            name: str,
-                            env_vars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _create_coingro_pod(self, name: str, env_vars: Optional[Dict[str, Any]] = None):
         cg_pod = self.resources.get_coingro_pod(name, env_vars)
         try:
+            pod = self.get_coingro_instance(name)
+            if pod:
+                self._delete_coingro_pod(name)
             return self.core_api.create_namespaced_pod(self.namespace, cg_pod)
         except Exception as e:  # Get specific exceptions
-            raise TemporaryError(e)
+            raise TemporaryError(f"error {e} creating pod")
 
-    # def update_coingro_instance(self, name: str) -> Dict[str, Any]:
-    #   cg_pod = self._update_coingro_pod(name)
-    #   return cg_pod
-
-    # @retrier(retries=3, sleep_time=1)
-    # def _update_coingro_pod(self, name: str) -> Dict[str, Any]:
-    #   cg_pod = self.resources.get_coingro_pod(name)
-    #   try:
-    #       return self.core_api.replace_namespaced_pod(name, self.namespace, cg_pod)
-    #   except Exception as e: # Get specific exceptions
-    #       raise TemporaryError(e)
-
-    def delete_coingro_instance(self, name: str, delete_pvc: bool = False) -> Dict[str, Any]:
+    def delete_coingro_instance(self, name: str):
         try:
             cg_pod = self._delete_coingro_pod(name)
             self._delete_coingro_service(name)
-            if delete_pvc:
-                self._delete_coingro_data_pvc(name)
             return cg_pod
         except Exception as e:
-            logger.error(f"Could not delete coingro instance {name} due to {e}.")
-            return {}
+            logger.error(f"Could not delete coingro instance {name} due to: {e}.")
+            # raise OperationalException(e)
 
     @retrier(retries=3, sleep_time=1)
-    def _delete_coingro_data_pvc(self, name: str) -> Dict[str, Any]:
+    def _delete_coingro_data_pvc(self, name: str):
         try:
             return self.core_api.delete_namespaced_persistent_volume_claim(name, self.namespace)
         except Exception as e:  # Get specific exceptions
-            raise TemporaryError(e)
+            raise TemporaryError(f"error {e} deleting persistent volume claim")
 
     @retrier(retries=3, sleep_time=1)
-    def _delete_coingro_service(self, name: str) -> Dict[str, Any]:
+    def _delete_coingro_service(self, name: str):
         try:
-            return self.core_api.delete_namespaced_service(name, self.namespace)
+            service = self._get_coingro_service(name)
+            if service:
+                self.core_api.delete_namespaced_service(name, self.namespace)
+            return service
         except Exception as e:  # Get specific exceptions
-            raise TemporaryError(e)
+            raise TemporaryError(f"error {e} deleting service")
 
     @retrier(retries=3, sleep_time=1)
-    def _delete_coingro_pod(self, name: str) -> Dict[str, Any]:
+    def _delete_coingro_pod(self, name: str):
         try:
+            # pod = self.get_coingro_instance(name)
+            # if pod:
             return self.core_api.delete_namespaced_pod(name, self.namespace)
+            # return pod
         except Exception as e:  # Get specific exceptions
-            raise TemporaryError(e)
+            raise TemporaryError(f"error {e} deleting pod")
+
+    def replace_coingro_instance(self, name: str, env_vars: Optional[Dict[str, Any]] = None):
+        try:
+            self._delete_coingro_pod(name)
+            cg_pod = self._create_coingro_pod(name, env_vars)
+            return cg_pod
+        except Exception as e:
+            logger.error(f"Could not replace coingro instance {name} due to: {e}.")
+            # raise OperationalException(e)
+
+    @retrier(retries=3, sleep_time=1)
+    def _replace_coingro_pod(self, name: str, env_vars: Optional[Dict[str, Any]] = None):
+        cg_pod = self.resources.get_coingro_pod(name, env_vars)
+        try:
+            return self.core_api.replace_namespaced_pod(name, self.namespace, cg_pod)
+        except Exception as e:  # Get specific exceptions
+            raise TemporaryError(f"error {e} deleting pod")

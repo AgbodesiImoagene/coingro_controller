@@ -25,8 +25,8 @@ class Strategy(_DECL_BASE):
 
     id = Column(BigInteger, primary_key=True)
     name = Column(String(255), nullable=False, index=True, unique=True)
-    bot_id = Column(String(255), ForeignKey('bots.id'), nullable=False, index=True, unique=True)
-    bot = relationship("Bot", back_populates="strategies")
+    bot_id = Column(BigInteger, ForeignKey('bots.id'), nullable=False, index=True, unique=True)
+    bot = relationship("Bot", back_populates="strategy_stats")
 
     # metadata
     category = Column(String(255))
@@ -83,7 +83,7 @@ class Strategy(_DECL_BASE):
                 if self.first_trade else None,
                 'latest_trade': self.latest_trade.strftime(DATETIME_PRINT_FORMAT)
                 if self.latest_trade else None,
-                'avg_duration': self.avg_duration,
+                'avg_duration': str(self.avg_duration),
                 'winning_trades': self.winning_trades,
                 'losing_trades': self.losing_trades,
             })
@@ -96,6 +96,14 @@ class Strategy(_DECL_BASE):
         :return: List of active strategies
         """
         return Strategy.query.join(Bot).filter(Bot.is_active.is_(True)).all()
+
+    @staticmethod
+    def strategy_by_bot_id(bot_id: str) -> Optional['Strategy']:
+        """
+        Retrieve strategy based on name
+        :return: Strategy or None
+        """
+        return Strategy.query.join(Bot).filter(Bot.bot_id == bot_id).first()
 
     @staticmethod
     def strategy_by_name(name: str) -> Optional['Strategy']:

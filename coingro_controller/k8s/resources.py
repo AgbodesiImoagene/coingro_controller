@@ -28,11 +28,10 @@ class Resources:
 
     def get_coingro_user_data_pvc(self, name: str) -> client.V1Service:
         meta = client.V1ObjectMeta()
-        meta.name = name
+        meta.name = f'{name}-user-data-pvc'
         meta.namespace = self.namespace
         meta.labels = {
             'name': f'{name}-user-data-pvc',
-            'mount': '/coingro/user_data',
             'app': 'coingro-bot',
             'creator': 'coingro-controller'
         }
@@ -56,20 +55,19 @@ class Resources:
         meta.namespace = self.namespace
         meta.labels = {
             'name': name,
-            'run': name,
-            'app': 'coingro-bot',
             'creator': 'coingro-controller'
         }
 
-        cg_api_server_port = client.V1ServicePort()
+        cg_api_server_port = client.V1ServicePort(port=80)
         cg_api_server_port.name = 'api-server-port'
         cg_api_server_port.protocol = 'TCP'
-        cg_api_server_port.port = 8080
         cg_api_server_port.target_port = self.cg_port
 
         spec = client.V1ServiceSpec()
-        spec.selectors = {
+        spec.selector = {
+            'name': name,
             'run': name,
+            'app': 'coingro-bot',
             'creator': 'coingro-controller'
         }
         spec.ports = [cg_api_server_port]
@@ -90,58 +88,68 @@ class Resources:
         env_list = []
 
         if env:
-            for key, val in env:
-                env_list.append(client.V1EnvVar(name=str(key), value=str(val)))
+            for key in env:
+                env_list.append(client.V1EnvVar(name=str(key), value=str(env[key])))
 
         env_list.append(client.V1EnvVar(name='CG_BOT_ID', value=name))
+        env_list.append(client.V1EnvVar(name='COINGRO__LOGFILE', value='default'))
 
-        startup_action = client.V1HTTPGetAction(path='api/v1/ping')
-        startup_action.port = self.cg_port
-        startup_probe = client.V1Probe()
-        startup_probe.http_get = startup_action
-        startup_probe.failure_threshold = 10
-        startup_probe.period_seconds = 3
+        # startup_action = client.V1HTTPGetAction(path='api/v1/ping', port=self.cg_port)
+        # startup_probe = client.V1Probe()
+        # startup_probe.http_get = startup_action
+        # startup_probe.failure_threshold = 3
+        # startup_probe.period_seconds = 60
 
-        liveness_action = client.V1HTTPGetAction(path='api/v1/ping')
-        liveness_action.port = self.cg_port
+        liveness_action = client.V1HTTPGetAction(path='api/v1/ping', port=self.cg_port)
         liveness_probe = client.V1Probe()
         liveness_probe.http_get = liveness_action
         liveness_probe.failure_threshold = 1
-        liveness_probe.period_seconds = 60
+        liveness_probe.initial_delay_seconds = 600
+        liveness_probe.period_seconds = 120
 
-        data_mount = client.V1VolumeMount()
-        data_mount.mount_path = '/coingro/user_data/'
-        data_mount.name = f'{name}-user-data'
+        data_mount = client.V1VolumeMount(mount_path='/coingro/user_data/',
+                                          name='user-data-volume')
 
-        strategies_mount = client.V1VolumeMount()
-        strategies_mount.mount_path = '/coingro/strategies/'
-        strategies_mount.name = f'{name}-strategies'
+        strategies_mount = client.V1VolumeMount(mount_path='/coingro/strategies/',
+                                                name='strategies-volume')
+        strategies_mount.read_only = True
 
-        data_pvc_claim_source = client.V1PersistentVolumeClaimVolumeSource()
-        data_pvc_claim_source.claim_name = f'{name}-user-data-pvc'
+        data_pvc_claim_source = \
+            client.V1PersistentVolumeClaimVolumeSource(
+                claim_name=self._config.get('cg_user_data_pvc_claim', 'usser-data-pvc')
+            )
 
-        strategies_pvc_claim_source = client.V1PersistentVolumeClaimVolumeSource()
-        strategies_pvc_claim_source.claim_name = \
-            self._config.get('cg_strategies_pvc_claim', 'strategies-pvc')
+        strategies_pvc_claim_source = \
+            client.V1PersistentVolumeClaimVolumeSource(
+                claim_name=self._config.get('cg_strategies_pvc_claim', 'strategies-pvc')
+            )
+        strategies_pvc_claim_source.read_only = True
 
-        cg_data_volume = client.V1Volume()
+        cg_data_volume = client.V1Volume(name='user-data-volume')
         cg_data_volume.persistent_volume_claim = data_pvc_claim_source
 
-        cg_strategies_volume = client.V1Volume()
+        cg_strategies_volume = client.V1Volume(name='strategies-volume')
         cg_strategies_volume.persistent_volume_claim = strategies_pvc_claim_source
 
-        cg_api_server_port = client.V1ContainerPort()
+        cg_api_server_port = client.V1ContainerPort(container_port=self.cg_port)
         cg_api_server_port.name = 'api-server-port'
         cg_api_server_port.container_port = self.cg_port
 
-        cg_container = client.V1Container()
-        cg_container.name = 'coingro-container'
+        cg_resources = client.V1ResourceRequirements()
+        cg_resources.limits = {'cpu': '250m', 'ephemeral-storage': '256Mi', 'memory': '128Mi'}
+        cg_resources.requests = {'cpu': '100m', 'ephemeral-storage': '128Mi', 'memory': '64Mi'}
+
+        cg_container = client.V1Container(name='coingro-container')
         cg_container.image = self._config['cg_image']
         cg_container.env = env_list
         cg_container.liveness_probe = liveness_probe
-        cg_container.startup_probe = startup_probe
-        cg_container.volume_mount = [data_mount, strategies_mount]
+        # cg_container.startup_probe = startup_probe
+        cg_container.volume_mounts = [data_mount, strategies_mount]
         cg_container.ports = [cg_api_server_port]
+        cg_container.resources = cg_resources
+
+        cg_security_context = client.V1PodSecurityContext()
+        cg_security_context.fs_group = self._config.get('cguser_group_id', 1000)
 
         meta = client.V1ObjectMeta()
         meta.name = name
@@ -153,9 +161,9 @@ class Resources:
             'creator': 'coingro-controller'
         }
 
-        spec = client.V1PodSpec()
-        spec.containers = [cg_container]
+        spec = client.V1PodSpec(containers=[cg_container])
         spec.volumes = [cg_data_volume, cg_strategies_volume]
+        spec.security_context = cg_security_context
 
         cg_pod = client.V1Pod()
         cg_pod.api_version = 'v1'

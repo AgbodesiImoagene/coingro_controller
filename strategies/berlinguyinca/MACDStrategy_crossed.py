@@ -9,7 +9,7 @@ from pandas import DataFrame
 # --------------------------------
 
 
-class MACDStrategy_crossed(IStrategy):
+class MACDStrategyCrossed(IStrategy):
     """
         buy:
             MACD crosses MACD signal above

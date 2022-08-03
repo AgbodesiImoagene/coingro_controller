@@ -28,7 +28,7 @@ class Bot(_DECL_BASE):
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, index=True)
     user = relationship("User", back_populates="bots")
     strategy_stats = relationship("Strategy", cascade="all, delete-orphan",
-                                  lazy="joined", back_populates="bots")
+                                  lazy="joined", back_populates="bot")
 
     image = Column(String(255), nullable=False)
     version = Column(String(100), nullable=False)

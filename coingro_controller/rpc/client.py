@@ -24,7 +24,7 @@ class CoingroClient:
 
         if str(method).upper() not in ('GET', 'POST', 'PUT', 'DELETE'):
             raise ValueError(f'invalid method <{method}>')
-        basepath = f"{serverurl}/api/v1/{apipath}"
+        basepath = f"{serverurl}/{apipath}"
 
         hd = {"Accept": "application/json",
               "Content-Type": "application/json"
@@ -175,13 +175,14 @@ class CoingroClient:
 
     def ping(self, serverurl):
         """simple ping"""
-        configstatus = self.show_config()
-        if not configstatus:
-            return {"status": "not_running"}
-        elif configstatus['state'] == "running":
-            return {"status": "pong"}
-        else:
-            return {"status": "not_running"}
+        return self._get(serverurl, "ping")
+        # configstatus = self.show_config(serverurl)
+        # if not configstatus:
+        #     return {"status": "not_running"}
+        # elif configstatus['state'] == "running":
+        #     return {"status": "pong"}
+        # else:
+        #     return {"status": "not_running"}
 
     def logs(self, serverurl, limit=None):
         """Show latest logs.

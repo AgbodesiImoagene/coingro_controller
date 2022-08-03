@@ -8,12 +8,12 @@ from typing import Any, Callable, Dict, Optional
 
 import sdnotify
 from coingro import __env__
-from coingro.constants import PROCESS_THROTTLE_SECS, RETRY_TIMEOUT
 from coingro.enums import State
 from coingro.exceptions import ExchangeError, OperationalException, TemporaryError
 
 from coingro_controller import __version__
 from coingro_controller.configuration import Configuration, validate_config_consistency
+from coingro_controller.constants import PROCESS_THROTTLE_SECS, RETRY_TIMEOUT
 from coingro_controller.controller import Controller
 
 
@@ -34,8 +34,6 @@ class Worker:
         self._args = args
         self._config = config
         self._init(False)
-
-        logger.info(self._config)
 
         self.last_throttle_start_time: float = 0
         self._heartbeat_msg: float = 0

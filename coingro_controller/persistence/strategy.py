@@ -5,8 +5,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from coingro.constants import DATETIME_PRINT_FORMAT
-from sqlalchemy import (BigInteger, Column, DateTime, Float, ForeignKey, Integer, Interval, String,
-                        Text)
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, Interval, String, Text
 from sqlalchemy.orm import relationship
 
 from coingro_controller.persistence.base import _DECL_BASE
@@ -23,9 +22,9 @@ class Strategy(_DECL_BASE):
     """
     __tablename__ = 'strategies'
 
-    id = Column(BigInteger, primary_key=True)
-    name = Column(String(255), nullable=False, index=True, unique=True)
-    bot_id = Column(BigInteger, ForeignKey('bots.id'), nullable=False, index=True, unique=True)
+    id = Column(Integer, primary_key=True)
+    # name = Column(String(255), nullable=False, index=True, unique=True)
+    bot_id = Column(Integer, ForeignKey('bots.id'), nullable=False, index=True, unique=True)
     bot = relationship("Bot", back_populates="strategy_stats")
 
     # metadata
@@ -58,7 +57,7 @@ class Strategy(_DECL_BASE):
 
     def to_json(self, minified: bool = False) -> Dict[str, Any]:
         resp = {
-            'name': self.name,
+            'name': self.bot.bot_name,
             'bot_id': self.bot_id,
             'category': self.category,
             'tags': self.tags.split(','),

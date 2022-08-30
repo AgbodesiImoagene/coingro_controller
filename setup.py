@@ -83,7 +83,9 @@ setup(
         'aiofiles',
         'schedule',
         'python-dateutil',
+        'packaging',
         'kubernetes>=24.2.0',
+        'randomname',
         'coingro',
     ],
     extras_require={

@@ -6,7 +6,8 @@ from coingro_controller.commands.cli_options import AVAILABLE_CLI_OPTIONS
 from coingro_controller.constants import DEFAULT_CONFIG
 
 
-ARGS_COMMON = ["verbosity", "logfile", "version", "config", "user_data_dir"]
+ARGS_COMMON = ["verbosity", "logfile", "version", "config", "user_data_dir", "strategy_path",
+               "db_url", "sd_notify"]
 
 
 class ControllerArguments:

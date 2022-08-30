@@ -49,18 +49,22 @@ def is_webserver_mode(config=Depends(get_config)):
     return None
 
 
-def get_user(userId: int = Header(None)) -> User:
-    user = User.user_by_id(userId)
+def get_user(userid: int = Header(None)) -> Iterator[User]:
+    User.query.session.rollback()
+    user = User.user_by_id(userid)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found."
         )
-    return user
+
+    yield user
+    User.query.session.rollback()
 
 
-def get_bot(botId: str, user: User = Depends(get_user)) -> Bot:
-    bot = Bot.bot_by_id(botId)
+def get_bot(botid: str, user: User = Depends(get_user)) -> Iterator[Bot]:
+    User.query.session.rollback()
+    bot = Bot.bot_by_id(botid)
     if (not bot) or (bot.deleted_at):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -73,14 +77,17 @@ def get_bot(botId: str, user: User = Depends(get_user)) -> Bot:
             detail="Unauthorized."
         )
 
-    return bot
+    yield bot
+    User.query.session.rollback()
 
 
-def get_active_bot(bot: Bot = Depends(get_bot)) -> Bot:
+def get_active_bot(bot: Bot = Depends(get_bot)) -> Iterator[Bot]:
+    User.query.session.rollback()
     if not bot.is_active:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Bot is not active."
         )
 
-    return bot
+    yield bot
+    User.query.session.rollback()

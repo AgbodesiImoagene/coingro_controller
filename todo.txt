@@ -1,5 +1,12 @@
 create controller logger
 create cluster spec files
 install coredns on cluster
-use redis for strategy cached
+use redis for strategy cache
 rewrite configure app in webserver.py
+
+reorganise strategy stats
+add name to bot table and add strategy migrations  # done
+add exchange credentials and available force buy quote currencies to options endpoint  # done
+fix api error messages and exchange validation messages
+deactivate strategies if script not present  # done
+fix rollback error  # done

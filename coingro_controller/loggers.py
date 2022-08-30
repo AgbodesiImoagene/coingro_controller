@@ -1,6 +1,7 @@
 import logging
 from logging import Formatter
 from logging.handlers import RotatingFileHandler, SysLogHandler
+from pathlib import Path
 from typing import Any, Dict
 
 from coingro.constants import USERPATH_LOGS
@@ -30,9 +31,6 @@ def _set_loggers(verbosity: int = 0, api_verbosity: str = 'info') -> None:
     logging.getLogger("urllib3").setLevel(
         logging.INFO if verbosity <= 1 else logging.DEBUG
     )
-    logging.getLogger('ccxt.base.exchange').setLevel(
-        logging.INFO if verbosity <= 2 else logging.DEBUG
-    )
     logging.getLogger('telegram').setLevel(logging.INFO)
 
     logging.getLogger('werkzeug').setLevel(
@@ -53,7 +51,8 @@ def setup_logging(config: Dict[str, Any]) -> None:
     """
     # Log level
     verbosity = config['verbosity']
-    logging.root.addHandler(bufferHandler)
+    if not get_existing_handlers(CGBufferingHandler):
+        logging.root.addHandler(bufferHandler)
 
     logfile = config.get('logfile')
 
@@ -93,8 +92,10 @@ def setup_logging(config: Dict[str, Any]) -> None:
         else:
             import coingro_controller
             if logfile == 'default' or coingro_controller.__env__ == 'kubernetes':
-                logfile = f'{config.get("user_data_dir", USER_DATA_DIR)}/' + \
-                          f'{USERPATH_LOGS}/{coingro_controller.__id__}.log'
+                logdir = f'{config.get("user_data_dir", USER_DATA_DIR)}/{USERPATH_LOGS}/'
+                logfile = f'{coingro_controller.__id__}.log'
+                if Path(logdir).is_dir():
+                    logfile = logdir + logfile
             handler_rf = get_existing_handlers(RotatingFileHandler)
             if handler_rf:
                 logging.root.removeHandler(handler_rf)

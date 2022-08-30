@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from coingro.constants import DATETIME_PRINT_FORMAT
-from sqlalchemy import BigInteger, Column, DateTime, Enum, String
+from sqlalchemy import Column, DateTime, Enum, Integer, String
 from sqlalchemy.orm import relationship
 
 from coingro_controller.enums import Role
@@ -23,7 +23,7 @@ class User(_DECL_BASE):  # Add collate to string columns
     """
     __tablename__ = 'users'
 
-    id = Column(BigInteger, primary_key=True)
+    id = Column(Integer, primary_key=True)
 
     bots = relationship("Bot", order_by="Bot.id", cascade="all, delete-orphan",
                         lazy="joined", back_populates="user")

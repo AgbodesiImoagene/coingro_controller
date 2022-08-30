@@ -18,7 +18,7 @@ from coingro.loggers import setup_logging_pre
 from coingro_controller.commands import ControllerArguments
 
 
-logger = logging.getLogger('coingro')
+logger = logging.getLogger('coingro-controller')
 
 
 def main(sysargv: List[str] = None) -> None:
@@ -39,12 +39,9 @@ def main(sysargv: List[str] = None) -> None:
         else:
             # No subcommand was issued.
             raise OperationalException(
-                "Usage of Coingro requires a subcommand to be specified.\n"
-                "To have the bot executing trades in live/dry-run modes, "
-                "depending on the value of the `dry_run` setting in the config, run Coingro "
-                "as `coingro trade [options...]`.\n"
+                "Usage of Coingro controller requires a subcommand to be specified.\n"
                 "To see the full list of options available, please use "
-                "`coingro --help` or `coingro <command> --help`."
+                "`coingro-controller --help` or `coingro-controller <command> --help`."
             )
 
     except SystemExit as e:  # pragma: no cover

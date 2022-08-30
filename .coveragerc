@@ -1,0 +1,6 @@
+[run]
+omit =
+    scripts/*
+    coingro_controller/templates/*
+    coingro_controller/__main__.py
+    tests/*

@@ -1,6 +1,13 @@
+from coingro.constants import SUPPORTED_STAKE_CURRENCIES
+from coingro.exchange.common import SUPPORTED_EXCHANGES
+from randomname import ADJECTIVES
+
+
 DEFAULT_CONFIG = 'config.json'
 DEFAULT_DB_URL = 'sqlite:///controllerv1.sqlite'
 DEFAULT_NAMESPACE = 'coingro'
+DEFAULT_EXCHANGE = 'binance'
+DEFAULT_STAKE_CURRENCY = 'USDT'
 USER_DATA_DIR = '/coingro/user_data'
 
 TELEGRAM_SETTING_OPTIONS = ['on', 'off', 'silent']
@@ -12,6 +19,10 @@ ENV_VAR_PREFIX = 'COINGRO_CONTROLLER__'
 
 PROCESS_THROTTLE_SECS = 300
 RETRY_TIMEOUT = 30
+
+BOT_NAME_ADJECTIVES = ADJECTIVES.copy()
+BOT_NAME_ADJECTIVES.remove('emotions')
+BOT_NAME_ADJECTIVES.remove('character')
 
 # Required json-schema for user specified config
 CONTROLLER_CONF_SCHEMA = {
@@ -33,6 +44,8 @@ CONTROLLER_CONF_SCHEMA = {
         'cg_strategies_pvc_claim': {'type': 'string'},
         'cg_version': {'type': 'string'},
         'cguser_group_id': {'type': 'integer'},
+        'default_strategy_exchange': {'type': 'string', 'enum': SUPPORTED_EXCHANGES},
+        'default_strategy_stake_currency': {'type': 'string', 'enum': SUPPORTED_STAKE_CURRENCIES},
         'api_server': {
             'type': 'object',
             'properties': {
@@ -82,5 +95,5 @@ CONTROLLER_CONF_SCHEMA = {
         },
         'recursive_strategy_search': {'type': 'boolean'}
     },
-    'required': ['cg_image', 'cg_version', 'api_server']
+    'required': ['cg_api_server_port', 'cg_image', 'cg_version', 'api_server']
 }

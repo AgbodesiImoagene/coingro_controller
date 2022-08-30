@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from coingro.rpc.api_server.api_schemas import StatusMsg
+from coingro.rpc.api_server.api_schemas import Daily, StatusMsg
 from pydantic import BaseModel
 
 
@@ -39,3 +39,33 @@ class StrategyListResponse(BaseModel):
 
 class BotStatus(StatusMsg):
     bot_id: str
+    bot_name: str
+
+
+class SummaryResponse(BaseModel):
+    daily: Daily
+    weekly: Daily
+    monthly: Daily
+
+
+class RequiredCredentials(BaseModel):
+    apiKey: bool
+    secret: bool
+    uid: bool
+    login: bool
+    password: bool
+    twofa: bool
+    privateKey: bool
+    walletAddress: bool
+    token: bool
+
+
+class ExchangeOptions(BaseModel):
+    required_credentials: RequiredCredentials
+
+
+class SettingsOptions(BaseModel):
+    exchanges: Dict[str, ExchangeOptions]
+    stake_currencies: List[str]
+    forceenter_quote_currencies: List[str]
+    fiat_display_currencies: List[str]

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from coingro.constants import DATETIME_PRINT_FORMAT
 from coingro.enums import State
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Enum, ForeignKey, String
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from coingro_controller.persistence.base import _DECL_BASE
@@ -23,9 +23,10 @@ class Bot(_DECL_BASE):
     """
     __tablename__ = 'bots'
 
-    id = Column(BigInteger, primary_key=True)
+    id = Column(Integer, primary_key=True)
+    bot_name = Column(String(255), nullable=False, index=True)
     bot_id = Column(String(255), nullable=False, index=True, unique=True)
-    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
     user = relationship("User", back_populates="bots")
     strategy_stats = relationship("Strategy", cascade="all, delete-orphan",
                                   lazy="joined", back_populates="bot")
@@ -35,6 +36,7 @@ class Bot(_DECL_BASE):
     api_url = Column(String(255), nullable=False)
     strategy = Column(String(100), nullable=True)
     exchange = Column(String(25), nullable=True)
+    stake_currency = Column(String(25), nullable=True)
     state = Column(Enum(State), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     is_strategy = Column(Boolean, nullable=False, default=False, index=True)
@@ -84,23 +86,6 @@ class Bot(_DECL_BASE):
                 if self.deleted_at else None,
             })
         return resp
-
-    # @staticmethod
-    # def update_orders(orders: List['Order'], order: Dict[str, Any]):
-    #     """
-    #     Get all non-closed orders - useful when trying to batch-update orders
-    #     """
-    #     if not isinstance(order, dict):
-    #         logger.warning(f"{order} is not a valid response object.")
-    #         return
-
-    #     filtered_orders = [o for o in orders if o.order_id == order.get('id')]
-    #     if filtered_orders:
-    #         oobj = filtered_orders[0]
-    #         oobj.update_from_ccxt_object(order)
-    #         Order.query.session.commit()
-    #     else:
-    #         logger.warning(f"Did not find order for {order}.")
 
     @staticmethod
     def get_active_bots() -> List['Bot']:

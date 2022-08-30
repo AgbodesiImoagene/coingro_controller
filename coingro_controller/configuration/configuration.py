@@ -9,11 +9,12 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from coingro.configuration.config_security import Encryption
-from coingro.configuration.directory_operations import create_datadir, create_userdata_dir
+from coingro.configuration.directory_operations import create_userdata_dir
 from coingro.configuration.environment_vars import flat_vars_to_nested_dict
 from coingro.configuration.load_config import load_config_file
 from coingro.exceptions import OperationalException
-from coingro.misc import deep_merge_dicts
+from coingro.misc import deep_merge_dicts, parse_db_uri_for_logging
+from packaging.version import InvalidVersion, parse
 from sqlalchemy.engine import URL
 
 from coingro_controller.constants import DEFAULT_DB_URL, ENV_VAR_PREFIX
@@ -65,9 +66,7 @@ class Configuration:
         :return: Configuration dictionary
         """
         # Load all configs
-        config_files = self.args.get('config_save', None)
-        if not config_files:
-            config_files = self.args.get('config', [])
+        config_files = self.args.get('config', [])
         config: Dict[str, Any] = load_from_files(config_files)
         config = Encryption(config).get_plain_config()
 
@@ -75,19 +74,12 @@ class Configuration:
         env_data = enironment_vars_to_dict()
         config = deep_merge_dicts(env_data, config)
 
-        # Set initial state
-        if self.args.get('config_save'):
-            config['initial_state'] = 'running'
-
         # Normalize config
         if 'internals' not in config:
             config['internals'] = {}
 
         if 'original_config_files' not in config:
             config['original_config_files'] = config_files
-
-        # if 'pairlists' not in config:
-        #     config['pairlists'] = []
 
         # Keep a copy of the original configuration file
         if 'original_config' not in config:
@@ -119,13 +111,24 @@ class Configuration:
         setup_logging(config)
 
     def _process_database_options(self, config: Dict[str, Any]) -> None:
-        logger.info(f'Using coingro image: "{config["cg_image"]}"')
+        config['db_url'] = Configuration.db_url_from_config(config)
 
-        if 'cg_api_server_port' not in config:
-            config['cg_api_server_port'] = 8080
+        logger.info(f'Using DB: "{parse_db_uri_for_logging(config["db_url"])}"')
 
     def _process_coingro_options(self, config: Dict[str, Any]) -> None:
-        config['db_url'] = Configuration.db_url_from_config(config)
+        # cg_version = ''
+        # if 'cg_version' in config:
+        #     cg_version = config['cg_version']
+        # else:
+        #     cg_version = config['cg_image'].split(':')[-1]
+
+        try:
+            config['cg_version'] = str(parse(config['cg_version']))
+        except InvalidVersion:
+            raise OperationalException('Invalid version provided.')
+
+        logger.info(f'Using coingro image: "{config["cg_image"]}"')
+        logger.info(f'Using coingro image version: "{config["cg_version"]}"')
 
     def _process_common_options(self, config: Dict[str, Any]) -> None:
         self._args_to_config(config, argname='strategy_path',
@@ -153,15 +156,15 @@ class Configuration:
         if 'user_data_dir' in self.args and self.args['user_data_dir']:
             config.update({'user_data_dir': self.args['user_data_dir']})
         elif 'user_data_dir' not in config:
-            # Default to cwd/user_data (legacy option ...)
-            config.update({'user_data_dir': str(Path.cwd() / '/coingro/user_data')})
+            # Default to /coingro/user_data (exists if base image is coingro)
+            userdir = Path('/coingro/user_data')
+            if not userdir.is_dir():
+                userdir = Path('user_data')
+            config.update({'user_data_dir': str(userdir)})
 
         # reset to user_data_dir so this contains the absolute path.
         config['user_data_dir'] = create_userdata_dir(config['user_data_dir'], create_dir=False)
         logger.info('Using user-data directory: %s ...', config['user_data_dir'])
-
-        config.update({'datadir': create_datadir(config, self.args.get('datadir'))})
-        logger.info('Using data directory: %s ...', config.get('datadir'))
 
     def _args_to_config(self, config: Dict[str, Any], argname: str,
                         logstring: str, logfun: Optional[Callable] = None,

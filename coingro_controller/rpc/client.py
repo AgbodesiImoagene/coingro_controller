@@ -247,8 +247,9 @@ class CoingroClient:
         :param add: List of coins to add (example: "BNB/BTC")
         :return: json object
         """
-        params = {}
-        params['pairs_to_delete'] = pairs
+        params = []
+        for pair in pairs:
+            params.append(('pairs_to_delete', pair))
         return self._delete(serverurl, "blacklist", params=params)
 
     def forceenter(self,
@@ -276,7 +277,7 @@ class CoingroClient:
                 "stakeamount": stakeamount,
                 "entry_tag": entry_tag
                 }
-        return self._post(serverurl, "forcebuy", data=data)
+        return self._post(serverurl, "forceenter", data=data)
 
     def forceexit(self, serverurl, tradeid, ordertype=None):
         """Force-exit a trade.
@@ -360,6 +361,13 @@ class CoingroClient:
         :return: json object
         """
         return self._get(serverurl, "sysinfo")
+
+    def health(self, serverurl):
+        """Provides info on last process
+
+        :return: json object
+        """
+        return self._get(serverurl, "health")
 
     def state(self, serverurl):
         """Provides information on running state
@@ -490,3 +498,10 @@ class CoingroClient:
                 'timeunit': timeunit,
                 'timescale': timescale,
             })
+
+    def trade_summary(self, serverurl):
+        """Return the profits for multiple timeframes.
+
+        :return: json object
+        """
+        return self._get(serverurl, "trade_summary")

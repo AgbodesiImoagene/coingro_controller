@@ -1,25 +1,30 @@
 import logging
 from typing import List, Optional
 
-from coingro.constants import SUPPORTED_FIAT, SUPPORTED_STAKE_CURRENCIES
+from coingro.constants import (SUPPORTED_FIAT, SUPPORTED_FORCEENTER_CURRENCIES,
+                               SUPPORTED_STAKE_CURRENCIES)
 from coingro.enums import State as StateEnum
-from coingro.exchange.common import SUPPORTED_EXCHANGES
+from coingro.enums import TimeUnit
 from coingro.rpc.api_server.api_schemas import (Balances, BlacklistPayload, BlacklistResponse,
                                                 Count, Daily, DeleteLockRequest, DeleteTrade,
-                                                ExchangeInfo, ForceEnterPayload, ForceEnterResponse,
+                                                ForceEnterPayload, ForceEnterResponse,
                                                 ForceExitPayload, Health, Locks, Logs,
                                                 OpenTradeSchema, PerformanceEntry, Ping, Profit,
-                                                ResultMsg, SettingsOptions, ShowConfig, State,
-                                                Stats, StatusMsg, SysInfo, UpdateExchangePayload,
+                                                ResultMsg, ShowConfig, State, Stats, StatusMsg,
+                                                SysInfo, TimeUnitProfit, UpdateExchangePayload,
                                                 UpdateSettingsPayload, UpdateStrategyPayload,
                                                 Version, WhitelistResponse)
 from fastapi import APIRouter, Depends, Query
-from fastapi.exceptions import HTTPException
+from fastapi.exceptions import HTTPException, RequestValidationError
+from fastapi.responses import PlainTextResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from coingro_controller import __version__
+from coingro_controller.persistence import Bot
 from coingro_controller.rpc import RPC
-from coingro_controller.rpc.api_server.api_schemas import (BotStatus, StrategyListResponse,
-                                                           StrategyResponse)
+from coingro_controller.rpc.api_server.api_schemas import (BotStatus, SettingsOptions,
+                                                           StrategyListResponse, StrategyResponse,
+                                                           SummaryResponse)
 from coingro_controller.rpc.api_server.deps import get_bot, get_client, get_rpc, get_user
 
 
@@ -39,6 +44,16 @@ logger = logging.getLogger(__name__)
 API_VERSION = 3.1
 
 router = APIRouter()
+
+
+@router.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc):
+    return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
+
+
+@router.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    return PlainTextResponse(str(exc), status_code=400)
 
 
 @router.get('/ping', response_model=Ping)
@@ -90,7 +105,10 @@ def performance(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/profit', response_model=Profit, tags=['info'])
 def profit(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.profit(bot.api_url)
+        resp = client.profit(bot.api_url)
+        if not resp.get('profit_factor'):
+            resp['profit_factor'] = float('inf')
+        return resp
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -160,23 +178,19 @@ def show_config(bot=Depends(get_bot), client=Depends(get_client)):
 
 
 @router.post('/forceenter', response_model=ForceEnterResponse, tags=['trading'])
-def force_entry(payload: ForceEnterPayload, bot=Depends(get_bot), client=Depends(get_client)):
-    side = payload.side.value if payload.side else None
-    ordertype = payload.ordertype.value if payload.ordertype else None
-
+def forceentry(payload: ForceEnterPayload, bot=Depends(get_bot), client=Depends(get_client)):
+    kwargs = payload.dict(exclude_none=True)
     try:
-        return client.forceenter(bot.api_url, payload.pair, side, payload.price, ordertype,
-                                 payload.stake_amount, payload.entry_tag)
+        return client.forceenter(bot.api_url, **kwargs)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
 
 @router.post('/forceexit', response_model=ResultMsg, tags=['trading'])
 def forceexit(payload: ForceExitPayload, bot=Depends(get_bot), client=Depends(get_client)):
-    ordertype = payload.ordertype.value if payload.ordertype else None
-
+    kwargs = payload.dict(exclude_none=True)
     try:
-        return client.forceexit(bot.api_url, payload.tradeid, ordertype)
+        return client.forceexit(bot.api_url, **kwargs)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -377,25 +391,21 @@ def controller_sysinfo():
 
 
 @router.get('/controller_health', response_model=Health, tags=['info'])
-def controller_health(rpc: RPC = Depends(get_rpc)):
+def controller_health(rpc=Depends(get_rpc)):
     return rpc._health()
 
 
-@router.get('/controller_state', response_model=State, tags=['info'])
-def controller_state(rpc: RPC = Depends(get_rpc)):
-    return rpc._state()
-
-
-@router.get('/exchange/{exchange_name}', response_model=ExchangeInfo, tags=['info'])
-def exchange_info(exchange_name: str):
-    return RPC._rpc_exchange_info(exchange_name)
+# @router.get('/exchange/{exchange_name}', response_model=ExchangeInfo, tags=['info'])
+# def exchange_info(exchange_name: str):
+#     return RPC._rpc_exchange_info(exchange_name)
 
 
 @router.get('/settings_options', response_model=SettingsOptions, tags=['info'])
 def list_exchanges():
     return {
-        'exchanges': SUPPORTED_EXCHANGES,
+        'exchanges': RPC._rpc_exchange_info(),
         'stake_currencies': SUPPORTED_STAKE_CURRENCIES,
+        'forceenter_quote_currencies': SUPPORTED_FORCEENTER_CURRENCIES,
         'fiat_display_currencies': SUPPORTED_FIAT
     }
 
@@ -409,6 +419,7 @@ def update_exchange(payload: UpdateExchangePayload,
         res = client.update_exchange(bot.api_url, **kwargs)
         if 'name' in kwargs:
             bot.exchange = kwargs['name']
+            Bot.commit()
         return res
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
@@ -423,6 +434,7 @@ def update_strategy(payload: UpdateStrategyPayload,
         res = client.update_strategy(bot.api_url, **kwargs)
         if 'strategy' in kwargs:
             bot.strategy = kwargs['strategy']
+            Bot.commit()
         return res
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
@@ -434,7 +446,13 @@ def update_general_settings(payload: UpdateSettingsPayload,
                             client=Depends(get_client)):
     kwargs = payload.dict(exclude_none=True)
     try:
-        return client.update_settings(bot.api_url, **kwargs)
+        res = client.update_settings(bot.api_url, **kwargs)
+        if 'bot_name' in kwargs:
+            bot.bot_name = kwargs['bot_name']
+        if 'stake_currency' in kwargs:
+            bot.stake_currency = kwargs['stake_currency']
+        Bot.commit()
+        return res
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -465,3 +483,18 @@ def deactivate_bot(bot=Depends(get_bot), rpc=Depends(get_rpc)):
 @router.post('/delete_bot', response_model=StatusMsg, tags=['bot control'])
 def delete_bot(bot=Depends(get_bot), rpc=Depends(get_rpc)):
     return rpc._rpc_delete_bot(bot.bot_id)
+
+
+@router.get('/timeunit_profit', response_model=TimeUnitProfit, tags=['info'])
+def timeunit_profit(timeunit: TimeUnit, timescale: int = 1,
+                    bot=Depends(get_bot), client=Depends(get_client)):
+    timeframe = timeunit.value
+    try:
+        return client.timeunit_profit(bot.api_url, timeframe, timescale)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
+
+
+@router.get('/summary', response_model=SummaryResponse, tags=['info'])
+def summary(bot=Depends(get_bot), rpc=Depends(get_rpc)):
+    return rpc._rpc_summary(bot.bot_id)

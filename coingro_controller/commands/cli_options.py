@@ -1,7 +1,7 @@
 from coingro.commands.cli_options import Arg
 
 from coingro_controller import __version__
-from coingro_controller.constants import DEFAULT_CONFIG
+from coingro_controller.constants import DEFAULT_CONFIG, DEFAULT_DB_URL
 
 
 AVAILABLE_CLI_OPTIONS = {
@@ -40,5 +40,16 @@ AVAILABLE_CLI_OPTIONS = {
         '--sd-notify',
         help='Notify systemd service manager.',
         action='store_true',
+    ),
+    "strategy_path": Arg(
+        '--strategy-path',
+        help='Specify additional strategy lookup path.',
+        metavar='PATH',
+    ),
+    "db_url": Arg(
+        '--db-url',
+        help=f'Override database URL, this is useful in custom deployments '
+        f'(default: {DEFAULT_DB_URL}).',
+        metavar='PATH',
     ),
 }

@@ -11,7 +11,7 @@ from coingro.rpc import RPCException
 from coingro.rpc.fiat_convert import CryptoToFiatConverter
 from dateutil.tz import tzlocal
 
-from coingro_controller.persistence import Strategy
+from coingro_controller.persistence import Bot, Strategy
 from coingro_controller.rpc.client import CoingroClient
 
 
@@ -63,33 +63,27 @@ class RPC:
             'last_process_ts': int(last_p.timestamp()),
         }
 
-    def _state(self) -> Dict[str, str]:
-        return {
-            'state': str(self._controller.state),
-        }
-
     @staticmethod
-    def _rpc_exchange_info(exchange: str) -> Dict[str, Any]:
-        exchange = exchange.lower()
-        if exchange not in SUPPORTED_EXCHANGES:
-            raise RPCException(f'{exchange} is not a supported exchange.')
+    def _rpc_exchange_info() -> Dict[str, Dict[str, Any]]:
         res = {}
 
         try:
             import ccxt
-            exchange_class = getattr(ccxt, exchange)()
+            for exchange in SUPPORTED_EXCHANGES:
+                exchange_class = getattr(ccxt, exchange)()
 
-            res = {'name': exchange,
-                   'required_credentials': exchange_class.requiredCredentials}
+                res[exchange] = {'required_credentials': exchange_class.requiredCredentials}
+
+            return res
         except Exception as e:
             raise RPCException(str(e)) from e
-        return res
 
     def _rpc_create_bot(self, user_id: int) -> Dict[str, Any]:
         try:
-            bot_id = self._controller.create_bot(user=user_id)
+            bot_id, bot_name = self._controller.create_bot(user=user_id)
             return {
                 'bot_id': bot_id,
+                'bot_name': bot_name,
                 'status': 'Successfully created coingro bot.',
             }
         except Exception as e:
@@ -97,9 +91,8 @@ class RPC:
 
     def _rpc_activate_bot(self, bot_id: str) -> Dict[str, Any]:
         try:
-            _bot_id = self._controller.create_bot(name=bot_id)
+            _ = self._controller.create_bot(bot_id=bot_id)
             return {
-                'bot_id': _bot_id,
                 'status': 'Successfully activated coingro bot.',
             }
         except Exception as e:
@@ -107,9 +100,8 @@ class RPC:
 
     def _rpc_deactivate_bot(self, bot_id: str) -> Dict[str, Any]:
         try:
-            bot_id = self._controller.deactivate_bot(name=bot_id)
+            _ = self._controller.deactivate_bot(bot_id=bot_id)
             return {
-                'bot_id': bot_id,
                 'status': 'Successfully deactivated coingro bot.',
             }
         except Exception as e:
@@ -117,10 +109,27 @@ class RPC:
 
     def _rpc_delete_bot(self, bot_id: str) -> Dict[str, Any]:
         try:
-            bot_id = self._controller.deactivate_bot(name=bot_id, delete=True)
+            _ = self._controller.deactivate_bot(bot_id=bot_id, delete=True)
             return {
-                'bot_id': bot_id,
                 'status': 'Successfully deleted coingro bot.',
             }
         except Exception as e:
             raise RPCException(f'Could not delete bot due to {e}.')
+
+    def _rpc_summary(self, bot_id: str) -> Dict[str, Any]:
+        try:
+            bot = Bot.bot_by_id(bot_id)
+            url = bot.api_url if bot else ''
+            timeunits = {
+                'days': 'daily',
+                'weeks': 'weekly',
+                'months': 'monthly'
+            }
+            resp = {}
+            for unit in timeunits:
+                timeframe = timeunits[unit]
+                data = self._client.timeunit_profit(url, unit, 1)
+                resp[timeframe] = data
+            return resp
+        except Exception as e:
+            raise RPCException(str(e)) from e

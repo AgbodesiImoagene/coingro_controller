@@ -10,3 +10,4 @@ add exchange credentials and available force buy quote currencies to options end
 fix api error messages and exchange validation messages
 deactivate strategies if script not present  # done
 fix rollback error  # done
+capitalise bot names properly

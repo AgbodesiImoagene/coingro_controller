@@ -7,13 +7,18 @@ from coingro.rpc.api_server.uvicorn_threaded import UvicornServer
 from coingro.rpc.api_server.webserver import CGJSONResponse
 from coingro.rpc.rpc import RPCException, RPCHandler
 from fastapi import FastAPI
+# from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
+# from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse
 
 from coingro_controller.rpc.rpc import RPC
 
 
 logger = logging.getLogger(__name__)
+
+
+app = FastAPI()
 
 
 class ApiServer(RPCHandler):
@@ -99,6 +104,10 @@ class ApiServer(RPCHandler):
             content={'error': f"Error querying {request.url.path}: {exc.message}"}
         )
 
+    # def custom_http_exception_handler(self, request, exc):
+    #     logger.exception({'error': f"API error querying {request.url.path}: {repr(exc)}"})
+    #     return http_exception_handler(request, exc)
+
     def configure_app(self, app: FastAPI, config):
         from coingro_controller.rpc.api_server.api_v1 import router as api_v1
 
@@ -113,6 +122,7 @@ class ApiServer(RPCHandler):
         )
 
         app.add_exception_handler(RPCException, self.handle_rpc_exception)
+        # app.add_exception_handler(StarletteHTTPException, self.custom_http_exception_handler)
 
     def start_api(self):
         """

@@ -1,14 +1,58 @@
 import json
 import logging
-from typing import Any, Dict
+import time
+from functools import wraps
+from typing import Any, Callable, Dict, Optional, TypeVar, cast, overload
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
+from coingro.constants import RETRY_COUNT, RETRY_TIME
 from coingro.exceptions import TemporaryError
-from coingro.misc import retrier
+from fastapi import HTTPException
 
 
 logger = logging.getLogger(__name__)
+
+
+F = TypeVar('F', bound=Callable[..., Any])
+
+
+# Type shenanigans
+@overload
+def retrier(_func: F) -> F:
+    ...
+
+
+@overload
+def retrier(*, retries=RETRY_COUNT, sleep_time: float = RETRY_TIME) -> Callable[[F], F]:
+    ...
+
+
+def retrier(_func: Optional[F] = None, *, retries: int = RETRY_COUNT,
+            sleep_time: float = RETRY_TIME):
+    def decorator(f: F) -> F:
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            count = kwargs.pop('count', retries)
+            try:
+                return f(*args, **kwargs)
+            except TemporaryError as ex:
+                msg = f'{f.__name__}() returned exception: "{ex}". '
+                if count > 0:
+                    logger.warning(msg + f'Retrying still for {count} times.')
+                    count -= 1
+                    kwargs.update({'count': count})
+                    time.sleep(sleep_time)
+                    return wrapper(*args, **kwargs)
+                else:
+                    logger.warning(msg + 'Giving up.')
+                    raise HTTPException(status_code=400, detail=str(ex))
+        return cast(F, wrapper)
+    # Support both @retrier and @retrier(retries=2, sleep_time=5) syntax
+    if _func is None:
+        return decorator
+    else:
+        return decorator(_func)
 
 
 class CoingroClient:
@@ -39,10 +83,9 @@ class CoingroClient:
 
         try:
             resp = self._session.request(method, url, headers=hd, data=json.dumps(data))
-            # return resp.text
             return resp.json()
-        except Exception as e:
-            raise TemporaryError(e)
+        except Exception:
+            raise TemporaryError(f"Could not connect to {url}.")
 
     def _get(self, serverurl, apipath, params: dict = None):
         return self._call("GET", serverurl, apipath, params=params)

@@ -119,9 +119,12 @@ class Controller(LoggingMixin):
             if bot:
                 bot_name = bot.bot_name
             else:
-                bot_name = get_name(adj=BOT_NAME_ADJECTIVES, sep=' ')
+                bot_name = get_name(adj=BOT_NAME_ADJECTIVES, sep=' ').title()
 
         env_vars.update({'COINGRO__BOT_NAME': bot_name})
+
+        if bot:
+            env_vars.update({'COINGRO__INITIAL_STATE': bot.state.name.lower()})
 
         instance = self.k8s_client.get_coingro_instance(bot_id)
         # status = instance.status.phase if instance else None
@@ -218,11 +221,6 @@ class Controller(LoggingMixin):
                 api_url = strategy.bot.api_url
                 strategy.bot.strategy = strategy.bot.bot_name
                 try:
-                    self.coingro_client.ping(api_url)
-                except Exception:
-                    logger.warning(f"Could not connect to strategy {strategy.bot.bot_name} "
-                                   "to update trade statistics.")
-                else:
                     data = self.coingro_client.profit(api_url)
                     strategy.profit_ratio_mean = data['profit_all_ratio_mean']
                     strategy.profit_ratio_sum = data['profit_all_ratio_sum']
@@ -253,3 +251,6 @@ class Controller(LoggingMixin):
 
                     Strategy.commit()
                     logger.info(f"Updated trade statistics for strategy {strategy.bot.bot_name}.")
+                except Exception as e:
+                    logger.warning(f"Could not update trade statistics for strategy "
+                                   f"{strategy.bot.bot_name} due to {repr(e)}.")

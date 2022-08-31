@@ -15,9 +15,8 @@ from coingro.rpc.api_server.api_schemas import (Balances, BlacklistPayload, Blac
                                                 UpdateSettingsPayload, UpdateStrategyPayload,
                                                 Version, WhitelistResponse)
 from fastapi import APIRouter, Depends, Query
-from fastapi.exceptions import HTTPException, RequestValidationError
-from fastapi.responses import PlainTextResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import HTTPException
+from pydantic import ValidationError
 
 from coingro_controller import __version__
 from coingro_controller.persistence import Bot
@@ -46,16 +45,6 @@ API_VERSION = 3.1
 router = APIRouter()
 
 
-@router.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request, exc):
-    return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
-
-
-@router.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
-    return PlainTextResponse(str(exc), status_code=400)
-
-
 @router.get('/ping', response_model=Ping)
 def ping():
     """simple ping"""
@@ -66,7 +55,14 @@ def ping():
 def version(bot=Depends(get_bot), client=Depends(get_client)):
     """ Version info"""
     try:
-        return client.version(bot.api_url)
+        res = client.version(bot.api_url)
+        Version(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -81,7 +77,14 @@ def controller_version():
 def balance(bot=Depends(get_bot), client=Depends(get_client)):
     """Account Balances"""
     try:
-        return client.balance(bot.api_url)
+        res = client.balance(bot.api_url)
+        Balances(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -89,7 +92,14 @@ def balance(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/count', response_model=Count, tags=['info'])
 def count(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.count(bot.api_url)
+        res = client.count(bot.api_url)
+        Count(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -97,7 +107,15 @@ def count(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/performance', response_model=List[PerformanceEntry], tags=['info'])
 def performance(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.performance(bot.api_url)
+        res = client.performance(bot.api_url)
+        for entry in res:
+            PerformanceEntry(**entry)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -105,10 +123,16 @@ def performance(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/profit', response_model=Profit, tags=['info'])
 def profit(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        resp = client.profit(bot.api_url)
-        if not resp.get('profit_factor'):
-            resp['profit_factor'] = float('inf')
-        return resp
+        res = client.profit(bot.api_url)
+        if not res.get('profit_factor'):
+            res['profit_factor'] = float('inf')
+        Profit(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -116,7 +140,14 @@ def profit(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/stats', response_model=Stats, tags=['info'])
 def stats(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.stats(bot.api_url)
+        res = client.stats(bot.api_url)
+        Stats(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -124,7 +155,14 @@ def stats(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/daily', response_model=Daily, tags=['info'])
 def daily(timescale: int = 7, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.daily(bot.api_url, timescale)
+        res = client.daily(bot.api_url, timescale)
+        Daily(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -132,7 +170,15 @@ def daily(timescale: int = 7, bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/status', response_model=List[OpenTradeSchema], tags=['info'])
 def status(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.status(bot.api_url)
+        res = client.status(bot.api_url)
+        for entry in res:
+            OpenTradeSchema(**entry)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -150,7 +196,14 @@ def trades(limit: int = 500, offset: int = 0, bot=Depends(get_bot), client=Depen
 @router.get('/trade/{tradeid}', response_model=OpenTradeSchema, tags=['info', 'trading'])
 def trade(tradeid: int = 0, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.trade(bot.api_url, tradeid)
+        res = client.trade(bot.api_url, tradeid)
+        OpenTradeSchema(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -158,7 +211,14 @@ def trade(tradeid: int = 0, bot=Depends(get_bot), client=Depends(get_client)):
 @router.delete('/trades/{tradeid}', response_model=DeleteTrade, tags=['info', 'trading'])
 def trades_delete(tradeid: int, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.delete_trade(bot.api_url, tradeid)
+        res = client.delete_trade(bot.api_url, tradeid)
+        DeleteTrade(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -172,7 +232,14 @@ def trades_delete(tradeid: int, bot=Depends(get_bot), client=Depends(get_client)
 @router.get('/show_config', response_model=ShowConfig, tags=['info'])
 def show_config(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.show_config(bot.api_url)
+        res = client.show_config(bot.api_url)
+        ShowConfig(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -181,7 +248,14 @@ def show_config(bot=Depends(get_bot), client=Depends(get_client)):
 def forceentry(payload: ForceEnterPayload, bot=Depends(get_bot), client=Depends(get_client)):
     kwargs = payload.dict(exclude_none=True)
     try:
-        return client.forceenter(bot.api_url, **kwargs)
+        res = client.forceenter(bot.api_url, **kwargs)
+        ForceEnterResponse(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -190,7 +264,14 @@ def forceentry(payload: ForceEnterPayload, bot=Depends(get_bot), client=Depends(
 def forceexit(payload: ForceExitPayload, bot=Depends(get_bot), client=Depends(get_client)):
     kwargs = payload.dict(exclude_none=True)
     try:
-        return client.forceexit(bot.api_url, **kwargs)
+        res = client.forceexit(bot.api_url, **kwargs)
+        ResultMsg(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -198,7 +279,14 @@ def forceexit(payload: ForceExitPayload, bot=Depends(get_bot), client=Depends(ge
 @router.get('/blacklist', response_model=BlacklistResponse, tags=['info', 'pairlist'])
 def blacklist(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.blacklist(bot.api_url)
+        res = client.blacklist(bot.api_url)
+        BlacklistResponse(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -206,7 +294,14 @@ def blacklist(bot=Depends(get_bot), client=Depends(get_client)):
 @router.post('/blacklist', response_model=BlacklistResponse, tags=['info', 'pairlist'])
 def blacklist_post(payload: BlacklistPayload, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.blacklist(bot.api_url, *(payload.blacklist))
+        res = client.blacklist(bot.api_url, *(payload.blacklist))
+        BlacklistResponse(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -216,7 +311,14 @@ def blacklist_delete(pairs_to_delete: List[str] = Query([]),
                      bot=Depends(get_bot), client=Depends(get_client)):
     """Provide a list of pairs to delete from the blacklist"""
     try:
-        return client.delete_blacklist(bot.api_url, pairs_to_delete)
+        res = client.delete_blacklist(bot.api_url, pairs_to_delete)
+        BlacklistResponse(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -224,7 +326,14 @@ def blacklist_delete(pairs_to_delete: List[str] = Query([]),
 @router.get('/whitelist', response_model=WhitelistResponse, tags=['info', 'pairlist'])
 def whitelist(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.whitelist(bot.api_url)
+        res = client.whitelist(bot.api_url)
+        WhitelistResponse(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -232,7 +341,14 @@ def whitelist(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/locks', response_model=Locks, tags=['info', 'locks'])
 def locks(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.locks(bot.api_url)
+        res = client.locks(bot.api_url)
+        Locks(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -240,7 +356,14 @@ def locks(bot=Depends(get_bot), client=Depends(get_client)):
 @router.delete('/locks/{lockid}', response_model=Locks, tags=['info', 'locks'])
 def delete_lock(lockid: int, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.delete_lock(bot.api_url, lockid)
+        res = client.delete_lock(bot.api_url, lockid)
+        Locks(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -248,7 +371,14 @@ def delete_lock(lockid: int, bot=Depends(get_bot), client=Depends(get_client)):
 @router.post('/locks/delete', response_model=Locks, tags=['info', 'locks'])
 def delete_lock_pair(payload: DeleteLockRequest, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.delete_lock(bot.api_url, payload.lockid, payload.pair)
+        res = client.delete_lock(bot.api_url, payload.lockid, payload.pair)
+        Locks(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -256,7 +386,14 @@ def delete_lock_pair(payload: DeleteLockRequest, bot=Depends(get_bot), client=De
 @router.get('/logs', response_model=Logs, tags=['info'])
 def logs(limit: Optional[int] = None, bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.logs(bot.api_url, limit)
+        res = client.logs(bot.api_url, limit)
+        Logs(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -265,8 +402,15 @@ def logs(limit: Optional[int] = None, bot=Depends(get_bot), client=Depends(get_c
 def start(bot=Depends(get_bot), client=Depends(get_client)):
     try:
         res = client.start(bot.api_url)
+        StatusMsg(**res)
         bot.state = StateEnum.RUNNING
+        Bot.commit()
         return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -275,8 +419,15 @@ def start(bot=Depends(get_bot), client=Depends(get_client)):
 def stop(bot=Depends(get_bot), client=Depends(get_client)):
     try:
         res = client.stop(bot.api_url)
+        StatusMsg(**res)
         bot.state = StateEnum.STOPPED
+        Bot.commit()
         return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -284,7 +435,14 @@ def stop(bot=Depends(get_bot), client=Depends(get_client)):
 @router.post('/stopbuy', response_model=StatusMsg, tags=['bot control'])
 def stop_buy(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.stopbuy(bot.api_url)
+        res = client.stopbuy(bot.api_url)
+        StatusMsg(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -292,7 +450,14 @@ def stop_buy(bot=Depends(get_bot), client=Depends(get_client)):
 @router.post('/reload_config', response_model=StatusMsg, tags=['bot control'])
 def reload_config(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.reload_config(bot.api_url)
+        res = client.reload_config(bot.api_url)
+        StatusMsg(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -364,7 +529,14 @@ def get_strategy(strategy: str):
 @router.get('/sysinfo', response_model=SysInfo, tags=['info'])
 def sysinfo(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.sysinfo(bot.api_url)
+        res = client.sysinfo(bot.api_url)
+        SysInfo(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -372,7 +544,14 @@ def sysinfo(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/health', response_model=Health, tags=['info'])
 def health(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.health(bot.api_url)
+        res = client.health(bot.api_url)
+        Health(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -380,7 +559,14 @@ def health(bot=Depends(get_bot), client=Depends(get_client)):
 @router.get('/state', response_model=State, tags=['info'])
 def state(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.state(bot.api_url)
+        res = client.state(bot.api_url)
+        State(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -417,10 +603,16 @@ def update_exchange(payload: UpdateExchangePayload,
     kwargs = payload.dict(exclude_none=True)
     try:
         res = client.update_exchange(bot.api_url, **kwargs)
+        StatusMsg(**res)
         if 'name' in kwargs:
             bot.exchange = kwargs['name']
             Bot.commit()
         return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -432,10 +624,16 @@ def update_strategy(payload: UpdateStrategyPayload,
     kwargs = payload.dict(exclude_none=True)
     try:
         res = client.update_strategy(bot.api_url, **kwargs)
+        StatusMsg(**res)
         if 'strategy' in kwargs:
             bot.strategy = kwargs['strategy']
             Bot.commit()
         return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -447,12 +645,18 @@ def update_general_settings(payload: UpdateSettingsPayload,
     kwargs = payload.dict(exclude_none=True)
     try:
         res = client.update_settings(bot.api_url, **kwargs)
+        StatusMsg(**res)
         if 'bot_name' in kwargs:
             bot.bot_name = kwargs['bot_name']
         if 'stake_currency' in kwargs:
             bot.stake_currency = kwargs['stake_currency']
         Bot.commit()
         return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -460,7 +664,14 @@ def update_general_settings(payload: UpdateSettingsPayload,
 @router.post('/reset_original_config', response_model=StatusMsg, tags=['bot control'])
 def reset_original_config(bot=Depends(get_bot), client=Depends(get_client)):
     try:
-        return client.reset_original_config(bot.api_url)
+        res = client.reset_original_config(bot.api_url)
+        StatusMsg(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
@@ -490,11 +701,28 @@ def timeunit_profit(timeunit: TimeUnit, timescale: int = 1,
                     bot=Depends(get_bot), client=Depends(get_client)):
     timeframe = timeunit.value
     try:
-        return client.timeunit_profit(bot.api_url, timeframe, timescale)
+        res = client.timeunit_profit(bot.api_url, timeframe, timescale)
+        TimeUnitProfit(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
     except Exception as e:
         raise HTTPException(status_code=500, detail=e)
 
 
 @router.get('/summary', response_model=SummaryResponse, tags=['info'])
 def summary(bot=Depends(get_bot), rpc=Depends(get_rpc)):
-    return rpc._rpc_summary(bot.bot_id)
+    try:
+        res = rpc._rpc_summary(bot.bot_id)
+        SummaryResponse(**res)
+        return res
+    except ValidationError:
+        if hasattr(res, '__getitem__') and 'detail' in res:
+            raise HTTPException(status_code=400, detail=res['detail'])
+        else:
+            raise HTTPException(status_code=400, detail=res)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)

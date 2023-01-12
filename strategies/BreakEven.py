@@ -1,7 +1,7 @@
 # --- Do not remove these libs ---
-from coingro.strategy.interface import IStrategy
 from pandas import DataFrame
 
+from coingro.strategy.interface import IStrategy
 
 # --------------------------------
 
@@ -29,41 +29,32 @@ class BreakEven(IStrategy):
     """
 
     # This attribute will be overridden if the config file contains "minimal_roi"
-    minimal_roi = {
-        "0": 0.01,      # at least 1% at first
-        "10": 0         # after 10min, everything goes
-    }
+    minimal_roi = {"0": 0.01, "10": 0}  # at least 1% at first  # after 10min, everything goes
 
     # This is more radical version that sells everything above the profit level
-#    minimal_roi = {
-#        "0": 0
-#    }
+    #    minimal_roi = {
+    #        "0": 0
+    #    }
 
     # And this is basically "/forcesell all", that sells no matter what profit
-#    minimal_roi = {
-#        "0": -1
-#    }
+    #    minimal_roi = {
+    #        "0": -1
+    #    }
 
     # Optimal stoploss designed for the strategy
     stoploss = -0.05
 
     # Optimal timeframe for the strategy
-    timeframe = '5m'
+    timeframe = "5m"
 
     # don't generate any buy or sell signals, everything is handled by ROI and stop_loss
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        dataframe.loc[
-            (
-            ),
-            'buy'] = 0
+        dataframe.loc[(), "buy"] = 0
         return dataframe
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        dataframe.loc[
-            (
-            ),
-            'sell'] = 0
+        dataframe.loc[(), "sell"] = 0
         return dataframe

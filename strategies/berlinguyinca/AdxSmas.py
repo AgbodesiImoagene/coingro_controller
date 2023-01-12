@@ -1,9 +1,9 @@
 # --- Do not remove these libs ---
-import coingro.vendor.qtpylib.indicators as qtpylib
 import talib.abstract as ta
-from coingro.strategy.interface import IStrategy
 from pandas import DataFrame
 
+import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy.interface import IStrategy
 
 # --------------------------------
 
@@ -22,39 +22,37 @@ class AdxSmas(IStrategy):
     # Minimal ROI designed for the strategy.
     # adjust based on market conditions. We would recommend to keep it low for quick turn arounds
     # This attribute will be overridden if the config file contains "minimal_roi"
-    minimal_roi = {
-        "0": 0.1
-    }
+    minimal_roi = {"0": 0.1}
 
     # Optimal stoploss designed for the strategy
     stoploss = -0.25
 
     # Optimal timeframe for the strategy
-    timeframe = '1h'
+    timeframe = "1h"
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        dataframe['adx'] = ta.ADX(dataframe, timeperiod=14)
-        dataframe['short'] = ta.SMA(dataframe, timeperiod=3)
-        dataframe['long'] = ta.SMA(dataframe, timeperiod=6)
+        dataframe["adx"] = ta.ADX(dataframe, timeperiod=14)
+        dataframe["short"] = ta.SMA(dataframe, timeperiod=3)
+        dataframe["long"] = ta.SMA(dataframe, timeperiod=6)
 
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
             (
-                    (dataframe['adx'] > 25) &
-                    (qtpylib.crossed_above(dataframe['short'], dataframe['long']))
-
+                (dataframe["adx"] > 25)
+                & (qtpylib.crossed_above(dataframe["short"], dataframe["long"]))
             ),
-            'buy'] = 1
+            "buy",
+        ] = 1
         return dataframe
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
             (
-                    (dataframe['adx'] < 25) &
-                    (qtpylib.crossed_above(dataframe['long'], dataframe['short']))
-
+                (dataframe["adx"] < 25)
+                & (qtpylib.crossed_above(dataframe["long"], dataframe["short"]))
             ),
-            'sell'] = 1
+            "sell",
+        ] = 1
         return dataframe

@@ -1,8 +1,8 @@
 # --- Do not remove these libs ---
-import coingro.vendor.qtpylib.indicators as qtpylib
-from coingro.strategy import IntParameter, IStrategy
 from pandas import DataFrame
 
+import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy import IntParameter, IStrategy
 
 # --------------------------------
 
@@ -18,16 +18,14 @@ def bollinger_bands(stock_price, window_size, num_of_std):
 class BinHV45(IStrategy):
     INTERFACE_VERSION = 2
 
-    minimal_roi = {
-        "0": 0.0125
-    }
+    minimal_roi = {"0": 0.0125}
 
     stoploss = -0.05
-    timeframe = '1m'
+    timeframe = "1m"
 
-    buy_bbdelta = IntParameter(low=1, high=15, default=30, space='buy', optimize=True)
-    buy_closedelta = IntParameter(low=15, high=20, default=30, space='buy', optimize=True)
-    buy_tail = IntParameter(low=20, high=30, default=30, space='buy', optimize=True)
+    buy_bbdelta = IntParameter(low=1, high=15, default=30, space="buy", optimize=True)
+    buy_closedelta = IntParameter(low=15, high=20, default=30, space="buy", optimize=True)
+    buy_tail = IntParameter(low=20, high=30, default=30, space="buy", optimize=True)
 
     # Hyperopt parameters
     buy_params = {
@@ -37,33 +35,34 @@ class BinHV45(IStrategy):
     }
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=40, stds=2)
+        bollinger = qtpylib.bollinger_bands(dataframe["close"], window=40, stds=2)
 
-        dataframe['upper'] = bollinger['upper']
-        dataframe['mid'] = bollinger['mid']
-        dataframe['lower'] = bollinger['lower']
-        dataframe['bbdelta'] = (dataframe['mid'] - dataframe['lower']).abs()
-        dataframe['pricedelta'] = (dataframe['open'] - dataframe['close']).abs()
-        dataframe['closedelta'] = (dataframe['close'] - dataframe['close'].shift()).abs()
-        dataframe['tail'] = (dataframe['close'] - dataframe['low']).abs()
+        dataframe["upper"] = bollinger["upper"]
+        dataframe["mid"] = bollinger["mid"]
+        dataframe["lower"] = bollinger["lower"]
+        dataframe["bbdelta"] = (dataframe["mid"] - dataframe["lower"]).abs()
+        dataframe["pricedelta"] = (dataframe["open"] - dataframe["close"]).abs()
+        dataframe["closedelta"] = (dataframe["close"] - dataframe["close"].shift()).abs()
+        dataframe["tail"] = (dataframe["close"] - dataframe["low"]).abs()
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
             (
-                dataframe['lower'].shift().gt(0) &
-                dataframe['bbdelta'].gt(dataframe['close'] * self.buy_bbdelta.value / 1000) &
-                dataframe['closedelta'].gt(dataframe['close'] * self.buy_closedelta.value / 1000) &
-                dataframe['tail'].lt(dataframe['bbdelta'] * self.buy_tail.value / 1000) &
-                dataframe['close'].lt(dataframe['lower'].shift()) &
-                dataframe['close'].le(dataframe['close'].shift())
+                dataframe["lower"].shift().gt(0)
+                & dataframe["bbdelta"].gt(dataframe["close"] * self.buy_bbdelta.value / 1000)
+                & dataframe["closedelta"].gt(dataframe["close"] * self.buy_closedelta.value / 1000)
+                & dataframe["tail"].lt(dataframe["bbdelta"] * self.buy_tail.value / 1000)
+                & dataframe["close"].lt(dataframe["lower"].shift())
+                & dataframe["close"].le(dataframe["close"].shift())
             ),
-            'buy'] = 1
+            "buy",
+        ] = 1
         return dataframe
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
         no sell signal
         """
-        dataframe.loc[:, 'sell'] = 0
+        dataframe.loc[:, "sell"] = 0
         return dataframe

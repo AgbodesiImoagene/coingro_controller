@@ -1,13 +1,12 @@
-
 # --- Do not remove these libs ---
 from functools import reduce
 
-import coingro.vendor.qtpylib.indicators as qtpylib
 import numpy  # noqa
 import talib.abstract as ta
-from coingro.strategy import CategoricalParameter, IntParameter, IStrategy
 from pandas import DataFrame
 
+import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy import CategoricalParameter, IntParameter, IStrategy
 
 # --------------------------------
 
@@ -21,24 +20,19 @@ class Strategy005(IStrategy):
     How to use it?
     > python3 ./coingro/main.py -s Strategy005
     """
+
     INTERFACE_VERSION = 2
 
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi"
-    minimal_roi = {
-        "1440": 0.01,
-        "80": 0.02,
-        "40": 0.03,
-        "20": 0.04,
-        "0":  0.05
-    }
+    minimal_roi = {"1440": 0.01, "80": 0.02, "40": 0.03, "20": 0.04, "0": 0.05}
 
     # Optimal stoploss designed for the strategy
     # This attribute will be overridden if the config file contains "stoploss"
     stoploss = -0.10
 
     # Optimal timeframe for the strategy
-    timeframe = '5m'
+    timeframe = "5m"
 
     # trailing stoploss
     trailing_stop = False
@@ -55,22 +49,23 @@ class Strategy005(IStrategy):
 
     # Optional order type mapping
     order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
+        "buy": "limit",
+        "sell": "limit",
+        "stoploss": "market",
+        "stoploss_on_exchange": False,
     }
 
-    buy_volumeAVG = IntParameter(low=50, high=300, default=70, space='buy', optimize=True)
-    buy_rsi = IntParameter(low=1, high=100, default=30, space='buy', optimize=True)
-    buy_fastd = IntParameter(low=1, high=100, default=30, space='buy', optimize=True)
-    buy_fishRsiNorma = IntParameter(low=1, high=100, default=30, space='buy', optimize=True)
+    buy_volumeAVG = IntParameter(low=50, high=300, default=70, space="buy", optimize=True)
+    buy_rsi = IntParameter(low=1, high=100, default=30, space="buy", optimize=True)
+    buy_fastd = IntParameter(low=1, high=100, default=30, space="buy", optimize=True)
+    buy_fishRsiNorma = IntParameter(low=1, high=100, default=30, space="buy", optimize=True)
 
-    sell_rsi = IntParameter(low=1, high=100, default=70, space='sell', optimize=True)
-    sell_minusDI = IntParameter(low=1, high=100, default=50, space='sell', optimize=True)
-    sell_fishRsiNorma = IntParameter(low=1, high=100, default=50, space='sell', optimize=True)
-    sell_trigger = CategoricalParameter(["rsi-macd-minusdi", "sar-fisherRsi"],
-                                        default=30, space='sell', optimize=True)
+    sell_rsi = IntParameter(low=1, high=100, default=70, space="sell", optimize=True)
+    sell_minusDI = IntParameter(low=1, high=100, default=50, space="sell", optimize=True)
+    sell_fishRsiNorma = IntParameter(low=1, high=100, default=50, space="sell", optimize=True)
+    sell_trigger = CategoricalParameter(
+        ["rsi-macd-minusdi", "sar-fisherRsi"], default=30, space="sell", optimize=True
+    )
 
     # Buy hyperspace params:
     buy_params = {
@@ -112,34 +107,34 @@ class Strategy005(IStrategy):
 
         # MACD
         macd = ta.MACD(dataframe)
-        dataframe['macd'] = macd['macd']
-        dataframe['macdsignal'] = macd['macdsignal']
+        dataframe["macd"] = macd["macd"]
+        dataframe["macdsignal"] = macd["macdsignal"]
 
         # Minus Directional Indicator / Movement
-        dataframe['minus_di'] = ta.MINUS_DI(dataframe)
+        dataframe["minus_di"] = ta.MINUS_DI(dataframe)
 
         # RSI
-        dataframe['rsi'] = ta.RSI(dataframe)
+        dataframe["rsi"] = ta.RSI(dataframe)
 
         # Inverse Fisher transform on RSI, values [-1.0, 1.0] (https://goo.gl/2JGGoy)
-        rsi = 0.1 * (dataframe['rsi'] - 50)
-        dataframe['fisher_rsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
+        rsi = 0.1 * (dataframe["rsi"] - 50)
+        dataframe["fisher_rsi"] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
         # Inverse Fisher transform on RSI normalized, value [0.0, 100.0] (https://goo.gl/2JGGoy)
-        dataframe['fisher_rsi_norma'] = 50 * (dataframe['fisher_rsi'] + 1)
+        dataframe["fisher_rsi_norma"] = 50 * (dataframe["fisher_rsi"] + 1)
 
         # Stoch fast
         stoch_fast = ta.STOCHF(dataframe)
-        dataframe['fastd'] = stoch_fast['fastd']
-        dataframe['fastk'] = stoch_fast['fastk']
+        dataframe["fastd"] = stoch_fast["fastd"]
+        dataframe["fastk"] = stoch_fast["fastk"]
 
         # Overlap Studies
         # ------------------------------------
 
         # SAR Parabol
-        dataframe['sar'] = ta.SAR(dataframe)
+        dataframe["sar"] = ta.SAR(dataframe)
 
         # SMA - Simple Moving Average
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=40)
+        dataframe["sma"] = ta.SMA(dataframe, timeperiod=40)
 
         return dataframe
 
@@ -152,16 +147,19 @@ class Strategy005(IStrategy):
         dataframe.loc[
             # Prod
             (
-                (dataframe['close'] > 0.00000200) &
-                (dataframe['volume'] >
-                    dataframe['volume'].rolling(self.buy_volumeAVG.value).mean() * 4) &
-                (dataframe['close'] < dataframe['sma']) &
-                (dataframe['fastd'] > dataframe['fastk']) &
-                (dataframe['rsi'] > self.buy_rsi.value) &
-                (dataframe['fastd'] > self.buy_fastd.value) &
-                (dataframe['fisher_rsi_norma'] < self.buy_fishRsiNorma.value)
+                (dataframe["close"] > 0.00000200)
+                & (
+                    dataframe["volume"]
+                    > dataframe["volume"].rolling(self.buy_volumeAVG.value).mean() * 4
+                )
+                & (dataframe["close"] < dataframe["sma"])
+                & (dataframe["fastd"] > dataframe["fastk"])
+                & (dataframe["rsi"] > self.buy_rsi.value)
+                & (dataframe["fastd"] > self.buy_fastd.value)
+                & (dataframe["fisher_rsi_norma"] < self.buy_fishRsiNorma.value)
             ),
-            'buy'] = 1
+            "buy",
+        ] = 1
 
         return dataframe
 
@@ -173,15 +171,15 @@ class Strategy005(IStrategy):
         """
 
         conditions = []
-        if self.sell_trigger.value == 'rsi-macd-minusdi':
-            conditions.append(qtpylib.crossed_above(dataframe['rsi'], self.sell_rsi.value))
-            conditions.append(dataframe['macd'] < 0)
-            conditions.append(dataframe['minus_di'] > self.sell_minusDI.value)
-        if self.sell_trigger.value == 'sar-fisherRsi':
-            conditions.append(dataframe['sar'] > dataframe['close'])
-            conditions.append(dataframe['fisher_rsi'] > self.sell_fishRsiNorma.value)
+        if self.sell_trigger.value == "rsi-macd-minusdi":
+            conditions.append(qtpylib.crossed_above(dataframe["rsi"], self.sell_rsi.value))
+            conditions.append(dataframe["macd"] < 0)
+            conditions.append(dataframe["minus_di"] > self.sell_minusDI.value)
+        if self.sell_trigger.value == "sar-fisherRsi":
+            conditions.append(dataframe["sar"] > dataframe["close"])
+            conditions.append(dataframe["fisher_rsi"] > self.sell_fishRsiNorma.value)
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), "sell"] = 1
 
         return dataframe

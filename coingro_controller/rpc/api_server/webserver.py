@@ -2,18 +2,19 @@ import logging
 from typing import Any, Dict
 
 import uvicorn
+from fastapi import FastAPI
+
+# from fastapi.exception_handlers import http_exception_handler
+from fastapi.middleware.cors import CORSMiddleware
+
+# from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import JSONResponse
+
 from coingro.exceptions import OperationalException
 from coingro.rpc.api_server.uvicorn_threaded import UvicornServer
 from coingro.rpc.api_server.webserver import CGJSONResponse
 from coingro.rpc.rpc import RPCException, RPCHandler
-from fastapi import FastAPI
-# from fastapi.exception_handlers import http_exception_handler
-from fastapi.middleware.cors import CORSMiddleware
-# from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.responses import JSONResponse
-
 from coingro_controller.rpc.rpc import RPC
-
 
 logger = logging.getLogger(__name__)
 
@@ -56,13 +57,14 @@ class ApiServer(RPCHandler):
         self._server = None
         ApiServer.__initialized = True
 
-        api_config = self._config['api_server']
+        api_config = self._config["api_server"]
 
-        self.app = FastAPI(title="Coingro API",
-                           docs_url='/docs' if api_config.get('enable_openapi', False) else None,
-                           redoc_url='/redoc' if api_config.get('enable_openapi', False) else None,
-                           default_response_class=CGJSONResponse,
-                           )
+        self.app = FastAPI(
+            title="Coingro API",
+            docs_url="/docs" if api_config.get("enable_openapi", False) else None,
+            redoc_url="/redoc" if api_config.get("enable_openapi", False) else None,
+            default_response_class=CGJSONResponse,
+        )
         self.configure_app(self.app, self._config)
 
         self.start_api()
@@ -76,10 +78,10 @@ class ApiServer(RPCHandler):
             ApiServer._has_rpc = True
         else:
             # This should not happen assuming we didn't mess up.
-            raise OperationalException('RPC Handler already attached.')
+            raise OperationalException("RPC Handler already attached.")
 
     def cleanup(self) -> None:
-        """ Cleanup pending module resources """
+        """Cleanup pending module resources"""
         ApiServer._has_rpc = False
         del ApiServer._rpc
         if self._server and not self._standalone:
@@ -100,8 +102,7 @@ class ApiServer(RPCHandler):
     def handle_rpc_exception(self, request, exc):
         logger.exception(f"API Error calling: {exc}")
         return JSONResponse(
-            status_code=502,
-            content={'error': f"Error querying {request.url.path}: {exc.message}"}
+            status_code=502, content={"error": f"Error querying {request.url.path}: {exc.message}"}
         )
 
     # def custom_http_exception_handler(self, request, exc):
@@ -111,11 +112,14 @@ class ApiServer(RPCHandler):
     def configure_app(self, app: FastAPI, config):
         from coingro_controller.rpc.api_server.api_v1 import router as api_v1
 
-        app.include_router(api_v1, prefix="/api/v1",)
+        app.include_router(
+            api_v1,
+            prefix="/api/v1",
+        )
 
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=config['api_server'].get('CORS_origins', []),
+            allow_origins=config["api_server"].get("CORS_origins", []),
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
@@ -128,19 +132,20 @@ class ApiServer(RPCHandler):
         """
         Start API ... should be run in thread.
         """
-        rest_ip = self._config['api_server']['listen_ip_address']
-        rest_port = self._config['api_server']['listen_port']
+        rest_ip = self._config["api_server"]["listen_ip_address"]
+        rest_port = self._config["api_server"]["listen_port"]
 
-        logger.info(f'Starting HTTP Server at {rest_ip}:{rest_port}')
-        verbosity = self._config['api_server'].get('verbosity', 'error')
+        logger.info(f"Starting HTTP Server at {rest_ip}:{rest_port}")
+        verbosity = self._config["api_server"].get("verbosity", "error")
 
-        uvconfig = uvicorn.Config(self.app,
-                                  port=rest_port,
-                                  host=rest_ip,
-                                  use_colors=False,
-                                  log_config=None,
-                                  access_log=True if verbosity != 'error' else False,
-                                  )
+        uvconfig = uvicorn.Config(
+            self.app,
+            port=rest_port,
+            host=rest_ip,
+            use_colors=False,
+            log_config=None,
+            access_log=True if verbosity != "error" else False,
+        )
         try:
             self._server = UvicornServer(uvconfig)
             if self._standalone:

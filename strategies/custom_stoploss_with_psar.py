@@ -24,13 +24,21 @@ class CustomStoplossWithPSAR(IStrategy):
 
     the populate_buy_trend() function is pretty nonsencial
     """
-    timeframe = '1h'
+
+    timeframe = "1h"
     stoploss = -0.2
     custom_info: Dict[str, Any] = {}
     use_custom_stoploss = True
 
-    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime,
-                        current_rate: float, current_profit: float, **kwargs) -> float:
+    def custom_stoploss(
+        self,
+        pair: str,
+        trade: "Trade",
+        current_time: datetime,
+        current_rate: float,
+        current_profit: float,
+        **kwargs
+    ) -> float:
 
         result = 1
         if self.custom_info and pair in self.custom_info and trade:
@@ -43,9 +51,9 @@ class CustomStoplossWithPSAR(IStrategy):
                 # only use .iat[-1] in callback methods, never in "populate_*" methods.
                 # see: https://www.freqtrade.io/en/latest/strategy-customization/#common-mistakes-when-developing-strategies  # noqa: E501
                 last_candle = dataframe.iloc[-1].squeeze()
-                relative_sl = last_candle['sar']
+                relative_sl = last_candle["sar"]
 
-            if (relative_sl is not None):
+            if relative_sl is not None:
                 # print("custom_stoploss().relative_sl: {}".format(relative_sl))
                 # calculate new_stoploss relative to current_rate
                 new_stoploss = (current_rate - relative_sl) / current_rate
@@ -57,9 +65,9 @@ class CustomStoplossWithPSAR(IStrategy):
         return result
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        dataframe['sar'] = ta.SAR(dataframe)
-        if self.dp.runmode.value in ('backtest', 'hyperopt'):
-            self.custom_info[metadata['pair']] = dataframe[['date', 'sar']].copy().set_index('date')
+        dataframe["sar"] = ta.SAR(dataframe)
+        if self.dp.runmode.value in ("backtest", "hyperopt"):
+            self.custom_info[metadata["pair"]] = dataframe[["date", "sar"]].copy().set_index("date")
 
         # all "normal" indicators:
         # e.g.
@@ -73,11 +81,7 @@ class CustomStoplossWithPSAR(IStrategy):
         :param dataframe: DataFrame
         :return: DataFrame with buy column
         """
-        dataframe.loc[
-            (
-                (dataframe['sar'] < dataframe['sar'].shift())
-            ),
-            'buy'] = 1
+        dataframe.loc[((dataframe["sar"] < dataframe["sar"].shift())), "buy"] = 1
 
         return dataframe
 
@@ -89,5 +93,5 @@ class CustomStoplossWithPSAR(IStrategy):
         :return: DataFrame with buy column
         """
         # Deactivated sell signal to allow the strategy to work correctly
-        dataframe.loc[:, 'sell'] = 0
+        dataframe.loc[:, "sell"] = 0
         return dataframe

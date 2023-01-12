@@ -1,13 +1,12 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from coingro.exceptions import TemporaryError  # , OperationalException
-from coingro.misc import retrier
 from kubernetes import client
 from kubernetes import config as k8s_config
 
+from coingro.exceptions import TemporaryError  # , OperationalException
+from coingro.misc import retrier
 from coingro_controller.k8s.resources import Resources
-
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +37,12 @@ class Client:
         items = res.items if res else []
         return items
 
-    def create_coingro_instance(self, bot_id: str, env_vars: Optional[Dict[str, Any]] = None):
+    def create_coingro_instance(
+        self, bot_id: str, config: Dict[str, Any], env_vars: Optional[Dict[str, Any]] = None
+    ):
         try:
             self._create_coingro_service(bot_id)
-            cg_pod = self._create_coingro_pod(bot_id, env_vars)
+            cg_pod = self._create_coingro_pod(bot_id, config, env_vars)
             return cg_pod
         except Exception as e:
             logger.error(f"Could not create coingro instance {bot_id} due to: {e}.")
@@ -67,8 +68,10 @@ class Client:
             raise TemporaryError(f"error {e} creating service")
 
     @retrier(retries=3, sleep_time=1)
-    def _create_coingro_pod(self, bot_id: str, env_vars: Optional[Dict[str, Any]] = None):
-        cg_pod = self.resources.get_coingro_pod(bot_id, env_vars)
+    def _create_coingro_pod(
+        self, bot_id: str, config: Dict[str, Any], env_vars: Optional[Dict[str, Any]] = None
+    ):
+        cg_pod = self.resources.get_coingro_pod(bot_id, config, env_vars)
         try:
             pod = self.get_coingro_instance(bot_id)
             if pod:
@@ -113,17 +116,21 @@ class Client:
         except Exception as e:  # Get specific exceptions
             raise TemporaryError(f"error {e} deleting pod")
 
-    def replace_coingro_instance(self, bot_id: str, env_vars: Optional[Dict[str, Any]] = None):
+    def replace_coingro_instance(
+        self, bot_id: str, config: Dict[str, Any], env_vars: Optional[Dict[str, Any]] = None
+    ):
         try:
-            cg_pod = self._replace_coingro_pod(bot_id, env_vars)
+            cg_pod = self._replace_coingro_pod(bot_id, config, env_vars)
             return cg_pod
         except Exception as e:
             logger.error(f"Could not replace coingro instance {bot_id} due to: {e}.")
             # raise OperationalException(e)
 
     @retrier(retries=3, sleep_time=1)
-    def _replace_coingro_pod(self, bot_id: str, env_vars: Optional[Dict[str, Any]] = None):
-        cg_pod = self.resources.get_coingro_pod(bot_id, env_vars)
+    def _replace_coingro_pod(
+        self, bot_id: str, config: Dict[str, Any], env_vars: Optional[Dict[str, Any]] = None
+    ):
+        cg_pod = self.resources.get_coingro_pod(bot_id, config, env_vars)
         try:
             return self.core_api.replace_namespaced_pod(bot_id, self.namespace, cg_pod)
         except Exception as e:  # Get specific exceptions

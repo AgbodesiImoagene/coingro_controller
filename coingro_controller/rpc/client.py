@@ -6,15 +6,15 @@ from typing import Any, Callable, Dict, Optional, TypeVar, cast, overload
 from urllib.parse import urlencode, urlparse, urlunparse
 
 import requests
-from coingro.constants import RETRY_COUNT, RETRY_TIME
-from coingro.exceptions import TemporaryError
 from fastapi import HTTPException
 
+from coingro.constants import RETRY_COUNT, RETRY_TIME
+from coingro.exceptions import TemporaryError
 
 logger = logging.getLogger(__name__)
 
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 # Type shenanigans
@@ -28,26 +28,29 @@ def retrier(*, retries=RETRY_COUNT, sleep_time: float = RETRY_TIME) -> Callable[
     ...
 
 
-def retrier(_func: Optional[F] = None, *, retries: int = RETRY_COUNT,
-            sleep_time: float = RETRY_TIME):
+def retrier(
+    _func: Optional[F] = None, *, retries: int = RETRY_COUNT, sleep_time: float = RETRY_TIME
+):
     def decorator(f: F) -> F:
         @wraps(f)
         def wrapper(*args, **kwargs):
-            count = kwargs.pop('count', retries)
+            count = kwargs.pop("count", retries)
             try:
                 return f(*args, **kwargs)
             except TemporaryError as ex:
                 msg = f'{f.__name__}() returned exception: "{ex}". '
                 if count > 0:
-                    logger.warning(msg + f'Retrying still for {count} times.')
+                    logger.warning(msg + f"Retrying still for {count} times.")
                     count -= 1
-                    kwargs.update({'count': count})
+                    kwargs.update({"count": count})
                     time.sleep(sleep_time)
                     return wrapper(*args, **kwargs)
                 else:
-                    logger.warning(msg + 'Giving up.')
+                    logger.warning(msg + "Giving up.")
                     raise HTTPException(status_code=400, detail=str(ex))
+
         return cast(F, wrapper)
+
     # Support both @retrier and @retrier(retries=2, sleep_time=5) syntax
     if _func is None:
         return decorator
@@ -58,21 +61,21 @@ def retrier(_func: Optional[F] = None, *, retries: int = RETRY_COUNT,
 class CoingroClient:
     def __init__(self, config: Dict[str, Any]):
         self._session = requests.Session()
-        if ('cg_api_server_username' in config) and ('cg_api_server_password' in config):
-            username = config['cg_api_server_username']
-            password = config['cg_api_server_password']
+        if ("cg_api_server_username" in config) and ("cg_api_server_password" in config):
+            username = config["cg_api_server_username"]
+            password = config["cg_api_server_password"]
             self._session.auth = (username, password)
 
     @retrier(retries=3, sleep_time=1)
-    def _call(self, method, serverurl, apipath, params: dict = None, data=None, files=None):
+    def _call(
+        self, method, serverurl, apipath, params: Optional[dict] = None, data=None, files=None
+    ):
 
-        if str(method).upper() not in ('GET', 'POST', 'PUT', 'DELETE'):
-            raise ValueError(f'invalid method <{method}>')
+        if str(method).upper() not in ("GET", "POST", "PUT", "DELETE"):
+            raise ValueError(f"invalid method <{method}>")
         basepath = f"{serverurl}/{apipath}"
 
-        hd = {"Accept": "application/json",
-              "Content-Type": "application/json"
-              }
+        hd = {"Accept": "application/json", "Content-Type": "application/json"}
 
         # Split url
         schema, netloc, path, par, query, fragment = urlparse(basepath)
@@ -87,16 +90,16 @@ class CoingroClient:
         except Exception:
             raise TemporaryError(f"Could not connect to {url}.")
 
-    def _get(self, serverurl, apipath, params: dict = None):
+    def _get(self, serverurl, apipath, params: Optional[dict] = None):
         return self._call("GET", serverurl, apipath, params=params)
 
-    def _delete(self, serverurl, apipath, params: dict = None):
+    def _delete(self, serverurl, apipath, params: Optional[dict] = None):
         return self._call("DELETE", serverurl, apipath, params=params)
 
-    def _post(self, serverurl, apipath, params: dict = None, data: dict = None):
+    def _post(self, serverurl, apipath, params: Optional[dict] = None, data: Optional[dict] = None):
         return self._call("POST", serverurl, apipath, params=params, data=data)
 
-    def _put(self, serverurl, apipath, params: dict = None, data: dict = None):
+    def _put(self, serverurl, apipath, params: Optional[dict] = None, data: Optional[dict] = None):
         return self._call("PUT", serverurl, apipath, params=params, data=data)
 
     def start(self, serverurl):
@@ -155,7 +158,7 @@ class CoingroClient:
         :return: json object
         """
         if pair:
-            data = {'lockid': lock_id, 'pair': pair}
+            data = {"lockid": lock_id, "pair": pair}
             return self._post(serverurl, "locks/delete", data=data)
         else:
             return self._delete(serverurl, f"locks/{lock_id}")
@@ -244,9 +247,9 @@ class CoingroClient:
         """
         params = {}
         if limit:
-            params['limit'] = limit
+            params["limit"] = limit
         if offset:
-            params['offset'] = offset
+            params["offset"] = offset
         return self._get(serverurl, "trades", params=params)
 
     def trade(self, serverurl, trade_id):
@@ -292,17 +295,19 @@ class CoingroClient:
         """
         params = []
         for pair in pairs:
-            params.append(('pairs_to_delete', pair))
+            params.append(("pairs_to_delete", pair))
         return self._delete(serverurl, "blacklist", params=params)
 
-    def forceenter(self,
-                   serverurl,
-                   pair,
-                   side=None,
-                   price=None,
-                   ordertype=None,
-                   stakeamount=None,
-                   entry_tag=None):
+    def forceenter(
+        self,
+        serverurl,
+        pair,
+        side=None,
+        price=None,
+        ordertype=None,
+        stakeamount=None,
+        entry_tag=None,
+    ):
         """Buy an asset.
 
         :param pair: Pair to buy (ETH/BTC)
@@ -313,13 +318,14 @@ class CoingroClient:
         :param entry_tag: Optional - string label of entry reason
         :return: json object of the trade
         """
-        data = {"pair": pair,
-                "price": price,
-                "side": side,
-                "ordertype": ordertype,
-                "stakeamount": stakeamount,
-                "entry_tag": entry_tag
-                }
+        data = {
+            "pair": pair,
+            "price": price,
+            "side": side,
+            "ordertype": ordertype,
+            "stakeamount": stakeamount,
+            "entry_tag": entry_tag,
+        }
         return self._post(serverurl, "forceenter", data=data)
 
     def forceexit(self, serverurl, tradeid, ordertype=None):
@@ -329,9 +335,7 @@ class CoingroClient:
         :param ordertype: Optional - 'limit' or 'market'
         :return: json object
         """
-        data = {"tradeid": tradeid,
-                "ordertype": ordertype
-                }
+        data = {"tradeid": tradeid, "ordertype": ordertype}
         return self._post(serverurl, "forceexit", data=data)
 
     def strategies(self, serverurl):
@@ -363,10 +367,14 @@ class CoingroClient:
         :param stake_currency: Only pairs that include this timeframe
         :return: json object
         """
-        return self._get(serverurl, "available_pairs", params={
-            "stake_currency": stake_currency if timeframe else '',
-            "timeframe": timeframe if timeframe else '',
-        })
+        return self._get(
+            serverurl,
+            "available_pairs",
+            params={
+                "stake_currency": stake_currency if timeframe else "",
+                "timeframe": timeframe if timeframe else "",
+            },
+        )
 
     def pair_candles(self, serverurl, pair, timeframe, limit=None):
         """Return live dataframe for <pair><timeframe>.
@@ -376,11 +384,15 @@ class CoingroClient:
         :param limit: Limit result to the last n candles.
         :return: json object
         """
-        return self._get(serverurl, "pair_candles", params={
-            "pair": pair,
-            "timeframe": timeframe,
-            "limit": limit,
-        })
+        return self._get(
+            serverurl,
+            "pair_candles",
+            params={
+                "pair": pair,
+                "timeframe": timeframe,
+                "limit": limit,
+            },
+        )
 
     def pair_history(self, serverurl, pair, timeframe, strategy, timerange=None):
         """Return historic, analyzed dataframe
@@ -391,12 +403,16 @@ class CoingroClient:
         :param timerange: Timerange to get data for (same format than --timerange endpoints)
         :return: json object
         """
-        return self._get(serverurl, "pair_history", params={
-            "pair": pair,
-            "timeframe": timeframe,
-            "strategy": strategy,
-            "timerange": timerange if timerange else '',
-        })
+        return self._get(
+            serverurl,
+            "pair_history",
+            params={
+                "pair": pair,
+                "timeframe": timeframe,
+                "strategy": strategy,
+                "timerange": timerange if timerange else "",
+            },
+        )
 
     def sysinfo(self, serverurl):
         """Provides system information (CPU, RAM usage)
@@ -434,13 +450,9 @@ class CoingroClient:
         """
         return self._get(serverurl, "settings_options")
 
-    def update_exchange(self, serverurl,
-                        dry_run=None,
-                        name=None,
-                        key=None,
-                        secret=None,
-                        password=None,
-                        uid=None):
+    def update_exchange(
+        self, serverurl, dry_run=None, name=None, key=None, secret=None, password=None, uid=None
+    ):
         """Update exchange configuration
 
         :param dry_run: Boolean indicating if the bot run in dry-run mode.
@@ -451,23 +463,30 @@ class CoingroClient:
         :param uid: UID (depends on exchange).
         :return: json object
         """
-        return self._post(serverurl, "exchange", data={
-            "dry_run": dry_run,
-            "name": name,
-            "key": key,
-            "secret": secret,
-            "password": password,
-            "uid": uid,
-        })
+        return self._post(
+            serverurl,
+            "exchange",
+            data={
+                "dry_run": dry_run,
+                "name": name,
+                "key": key,
+                "secret": secret,
+                "password": password,
+                "uid": uid,
+            },
+        )
 
-    def update_strategy(self, serverurl,
-                        strategy=None,
-                        minimal_roi=None,
-                        stoploss=None,
-                        trailing_stop=None,
-                        trailing_stop_positive=None,
-                        trailing_stop_positive_offset=None,
-                        trailing_only_offset_is_reached=None):
+    def update_strategy(
+        self,
+        serverurl,
+        strategy=None,
+        minimal_roi=None,
+        stoploss=None,
+        trailing_stop=None,
+        trailing_stop_positive=None,
+        trailing_stop_positive_offset=None,
+        trailing_only_offset_is_reached=None,
+    ):
         """Update strategy configuration
 
         :param strategy: The strategy the bot should use.
@@ -481,24 +500,31 @@ class CoingroClient:
         :param trailing_only_offset_is_reached: Should the positive offset be used.
         :return: json object
         """
-        return self._post(serverurl, "strategy", data={
-            "strategy": strategy,
-            "minimal_roi": minimal_roi,
-            "stoploss": stoploss,
-            "trailing_stop": trailing_stop,
-            "trailing_stop_positive": trailing_stop_positive,
-            "trailing_stop_positive_offset": trailing_stop_positive_offset,
-            "trailing_only_offset_is_reached": trailing_only_offset_is_reached,
-        })
+        return self._post(
+            serverurl,
+            "strategy",
+            data={
+                "strategy": strategy,
+                "minimal_roi": minimal_roi,
+                "stoploss": stoploss,
+                "trailing_stop": trailing_stop,
+                "trailing_stop_positive": trailing_stop_positive,
+                "trailing_stop_positive_offset": trailing_stop_positive_offset,
+                "trailing_only_offset_is_reached": trailing_only_offset_is_reached,
+            },
+        )
 
-    def update_settings(self, serverurl,
-                        max_open_trades=None,
-                        stake_currency=None,
-                        stake_amount=None,
-                        tradable_balance_ratio=None,
-                        fiat_display_currency=None,
-                        available_capital=None,
-                        dry_run_wallet=None):
+    def update_settings(
+        self,
+        serverurl,
+        max_open_trades=None,
+        stake_currency=None,
+        stake_amount=None,
+        tradable_balance_ratio=None,
+        fiat_display_currency=None,
+        available_capital=None,
+        dry_run_wallet=None,
+    ):
         """Update general configuration
 
         :param max_open_trades: Maximum number of trades that can be open simultaneously
@@ -513,15 +539,19 @@ class CoingroClient:
             (only used in dry-run mode).
         :return: json object
         """
-        return self._post(serverurl, "settings", data={
-            "max_open_trades": max_open_trades,
-            "stake_currency": stake_currency,
-            "stake_amount": stake_amount,
-            "tradable_balance_ratio": tradable_balance_ratio,
-            "fiat_display_currency": fiat_display_currency,
-            "available_capital": available_capital,
-            "dry_run_wallet": dry_run_wallet,
-        })
+        return self._post(
+            serverurl,
+            "settings",
+            data={
+                "max_open_trades": max_open_trades,
+                "stake_currency": stake_currency,
+                "stake_amount": stake_amount,
+                "tradable_balance_ratio": tradable_balance_ratio,
+                "fiat_display_currency": fiat_display_currency,
+                "available_capital": available_capital,
+                "dry_run_wallet": dry_run_wallet,
+            },
+        )
 
     def reset_original_config(self, serverurl):
         """Reset the configuration to its original state
@@ -535,12 +565,16 @@ class CoingroClient:
 
         :return: json object
         """
-        if timeunit not in ['weeks', 'months']:
-            timeunit = 'days'
-        return self._get(serverurl, "timeunit_profit", params={
-                'timeunit': timeunit,
-                'timescale': timescale,
-            })
+        if timeunit not in ["weeks", "months"]:
+            timeunit = "days"
+        return self._get(
+            serverurl,
+            "timeunit_profit",
+            params={
+                "timeunit": timeunit,
+                "timescale": timescale,
+            },
+        )
 
     def trade_summary(self, serverurl):
         """Return the profits for multiple timeframes.

@@ -30,3 +30,4 @@ twine==4.0.1
 keyrings.google-artifactregistry-auth==1.0.0
 keyring==23.7.0
 build==0.8.0
+alembic==1.8.1

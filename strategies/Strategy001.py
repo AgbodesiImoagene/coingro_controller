@@ -1,10 +1,9 @@
-
 # --- Do not remove these libs ---
-import coingro.vendor.qtpylib.indicators as qtpylib
 import talib.abstract as ta
-from coingro.strategy import IStrategy
 from pandas import DataFrame
 
+import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy import IStrategy
 
 # --------------------------------
 
@@ -21,19 +20,14 @@ class Strategy001(IStrategy):
 
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi"
-    minimal_roi = {
-        "60":  0.01,
-        "30":  0.03,
-        "20":  0.04,
-        "0":  0.05
-    }
+    minimal_roi = {"60": 0.01, "30": 0.03, "20": 0.04, "0": 0.05}
 
     # Optimal stoploss designed for the strategy
     # This attribute will be overridden if the config file contains "stoploss"
     stoploss = -0.10
 
     # Optimal timeframe for the strategy
-    timeframe = '5m'
+    timeframe = "5m"
 
     # trailing stoploss
     trailing_stop = False
@@ -50,10 +44,10 @@ class Strategy001(IStrategy):
 
     # Optional order type mapping
     order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
+        "buy": "limit",
+        "sell": "limit",
+        "stoploss": "market",
+        "stoploss_on_exchange": False,
     }
 
     def informative_pairs(self):
@@ -78,13 +72,13 @@ class Strategy001(IStrategy):
         or your hyperopt configuration, otherwise you will waste your memory and CPU usage.
         """
 
-        dataframe['ema20'] = ta.EMA(dataframe, timeperiod=20)
-        dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
-        dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
+        dataframe["ema20"] = ta.EMA(dataframe, timeperiod=20)
+        dataframe["ema50"] = ta.EMA(dataframe, timeperiod=50)
+        dataframe["ema100"] = ta.EMA(dataframe, timeperiod=100)
 
         heikinashi = qtpylib.heikinashi(dataframe)
-        dataframe['ha_open'] = heikinashi['open']
-        dataframe['ha_close'] = heikinashi['close']
+        dataframe["ha_open"] = heikinashi["open"]
+        dataframe["ha_close"] = heikinashi["close"]
 
         return dataframe
 
@@ -96,11 +90,12 @@ class Strategy001(IStrategy):
         """
         dataframe.loc[
             (
-                qtpylib.crossed_above(dataframe['ema20'], dataframe['ema50']) &
-                (dataframe['ha_close'] > dataframe['ema20']) &
-                (dataframe['ha_open'] < dataframe['ha_close'])  # green bar
+                qtpylib.crossed_above(dataframe["ema20"], dataframe["ema50"])
+                & (dataframe["ha_close"] > dataframe["ema20"])
+                & (dataframe["ha_open"] < dataframe["ha_close"])  # green bar
             ),
-            'buy'] = 1
+            "buy",
+        ] = 1
 
         return dataframe
 
@@ -112,9 +107,10 @@ class Strategy001(IStrategy):
         """
         dataframe.loc[
             (
-                qtpylib.crossed_above(dataframe['ema50'], dataframe['ema100']) &
-                (dataframe['ha_close'] < dataframe['ema20']) &
-                (dataframe['ha_open'] > dataframe['ha_close'])  # red bar
+                qtpylib.crossed_above(dataframe["ema50"], dataframe["ema100"])
+                & (dataframe["ha_close"] < dataframe["ema20"])
+                & (dataframe["ha_open"] > dataframe["ha_close"])  # red bar
             ),
-            'sell'] = 1
+            "sell",
+        ] = 1
         return dataframe

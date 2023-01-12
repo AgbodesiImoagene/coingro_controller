@@ -7,15 +7,13 @@ from os import getpid
 from typing import Any, Callable, Dict, Optional
 
 import sdnotify
-from coingro import __env__
+
 from coingro.enums import State
 from coingro.exceptions import ExchangeError, OperationalException, TemporaryError
-
 from coingro_controller import __version__
 from coingro_controller.configuration import Configuration, validate_config_consistency
 from coingro_controller.constants import PROCESS_THROTTLE_SECS, RETRY_TIMEOUT
 from coingro_controller.controller import Controller
-
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +23,7 @@ class Worker:
     Coingro controller worker class
     """
 
-    def __init__(self, args: Dict[str, Any], config: Dict[str, Any] = None) -> None:
+    def __init__(self, args: Dict[str, Any], config: Optional[Dict[str, Any]] = None) -> None:
         """
         Init all variables and objects the bot needs to work
         """
@@ -53,13 +51,15 @@ class Worker:
 
         self.controller = Controller(self._config)
 
-        internals_config = self._config.get('internals', {})
-        self._throttle_secs = internals_config.get('process_throttle_secs',
-                                                   PROCESS_THROTTLE_SECS)
-        self._heartbeat_interval = internals_config.get('heartbeat_interval', 120)
+        internals_config = self._config.get("internals", {})
+        self._throttle_secs = internals_config.get("process_throttle_secs", PROCESS_THROTTLE_SECS)
+        self._heartbeat_interval = internals_config.get("heartbeat_interval", 120)
 
-        self._sd_notify = sdnotify.SystemdNotifier() if \
-            self._config.get('internals', {}).get('sd_notify', False) else None
+        self._sd_notify = (
+            sdnotify.SystemdNotifier()
+            if self._config.get("internals", {}).get("sd_notify", False)
+            else None
+        )
 
     def _notify(self, message: str) -> None:
         """
@@ -89,7 +89,8 @@ class Worker:
         if state != old_state:
 
             logger.info(
-                f"Changing state{f' from {old_state.name}' if old_state else ''} to: {state.name}")
+                f"Changing state{f' from {old_state.name}' if old_state else ''} to: {state.name}"
+            )
             if state == State.RUNNING:
                 self.controller.startup()
 
@@ -113,8 +114,10 @@ class Worker:
             now = time.time()
             if (now - self._heartbeat_msg) > self._heartbeat_interval:
                 version = __version__
-                logger.info(f"Controller heartbeat. PID={getpid()}, "
-                            f"version='{version}', state='{state.name}'")
+                logger.info(
+                    f"Controller heartbeat. PID={getpid()}, "
+                    f"version='{version}', state='{state.name}'"
+                )
                 self._heartbeat_msg = now
 
         return state
@@ -132,8 +135,10 @@ class Worker:
         result = func(*args, **kwargs)
         time_passed = time.time() - self.last_throttle_start_time
         sleep_duration = max(throttle_secs - time_passed, 0.0)
-        logger.debug(f"Throttling with '{func.__name__}()': sleep for {sleep_duration:.2f} s, "
-                     f"last iteration took {time_passed:.2f} s.")
+        logger.debug(
+            f"Throttling with '{func.__name__}()': sleep for {sleep_duration:.2f} s, "
+            f"last iteration took {time_passed:.2f} s."
+        )
         time.sleep(sleep_duration)
         return result
 
@@ -147,8 +152,8 @@ class Worker:
             logger.warning(f"Error: {error}, retrying in {RETRY_TIMEOUT} seconds...")
             time.sleep(RETRY_TIMEOUT)
         except (OperationalException, ExchangeError) as error:
-            if isinstance(error, OperationalException) or __env__ == 'docker':
-                logger.exception(f'{type(error).__name__}. Stopping trader ...')
+            if isinstance(error, OperationalException):
+                logger.exception(f"{type(error).__name__}. Stopping controller ...")
                 self.controller.state = State.STOPPED
 
     def _reconfigure(self) -> None:

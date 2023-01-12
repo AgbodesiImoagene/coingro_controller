@@ -7,9 +7,9 @@
 # coingro hyperopt --hyperopt-loss SharpeHyperOptLoss --strategy HourBasedStrategy -e 200
 
 
-from coingro.strategy import IntParameter, IStrategy
 from pandas import DataFrame
 
+from coingro.strategy import IntParameter, IStrategy
 
 # --------------------------------
 # Add your lib to import here
@@ -74,42 +74,34 @@ class HourBasedStrategy(IStrategy):
     }
 
     # ROI table:
-    minimal_roi = {
-        "0": 0.528,
-        "169": 0.113,
-        "528": 0.089,
-        "1837": 0
-    }
+    minimal_roi = {"0": 0.528, "169": 0.113, "528": 0.089, "1837": 0}
 
     # Stoploss:
     stoploss = -0.10
 
     # Optimal timeframe
-    timeframe = '1h'
+    timeframe = "1h"
 
-    buy_hour_min = IntParameter(0, 24, default=1, space='buy')
-    buy_hour_max = IntParameter(0, 24, default=0, space='buy')
+    buy_hour_min = IntParameter(0, 24, default=1, space="buy")
+    buy_hour_max = IntParameter(0, 24, default=0, space="buy")
 
-    sell_hour_min = IntParameter(0, 24, default=1, space='sell')
-    sell_hour_max = IntParameter(0, 24, default=0, space='sell')
+    sell_hour_min = IntParameter(0, 24, default=1, space="sell")
+    sell_hour_max = IntParameter(0, 24, default=0, space="sell")
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        dataframe['hour'] = dataframe['date'].dt.hour
+        dataframe["hour"] = dataframe["date"].dt.hour
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
-            (
-                (dataframe['hour'].between(self.buy_hour_min.value, self.buy_hour_max.value))
-            ),
-            'buy'] = 1
+            ((dataframe["hour"].between(self.buy_hour_min.value, self.buy_hour_max.value))), "buy"
+        ] = 1
 
         return dataframe
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
-            (
-                (dataframe['hour'].between(self.sell_hour_min.value, self.sell_hour_max.value))
-            ),
-            'sell'] = 1
+            ((dataframe["hour"].between(self.sell_hour_min.value, self.sell_hour_max.value))),
+            "sell",
+        ] = 1
         return dataframe

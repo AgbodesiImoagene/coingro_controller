@@ -1,11 +1,11 @@
-
 # --- Do not remove these libs ---
 import numpy  # noqa
+
 # Add your lib to import here
 import talib.abstract as ta
-from coingro.strategy.interface import IStrategy
 from pandas import DataFrame
 
+from coingro.strategy.interface import IStrategy
 
 # --------------------------------
 
@@ -29,19 +29,14 @@ class CMCWinner(IStrategy):
 
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi"
-    minimal_roi = {
-        "40": 0.0,
-        "30": 0.02,
-        "20": 0.03,
-        "0": 0.05
-    }
+    minimal_roi = {"40": 0.0, "30": 0.02, "20": 0.03, "0": 0.05}
 
     # Optimal stoploss designed for the strategy
     # This attribute will be overridden if the config file contains "stoploss"
     stoploss = -0.05
 
     # Optimal timeframe for the strategy
-    timeframe = '15m'
+    timeframe = "15m"
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
@@ -53,13 +48,13 @@ class CMCWinner(IStrategy):
         """
 
         # Commodity Channel Index: values Oversold:<-100, Overbought:>100
-        dataframe['cci'] = ta.CCI(dataframe)
+        dataframe["cci"] = ta.CCI(dataframe)
 
         # MFI
-        dataframe['mfi'] = ta.MFI(dataframe)
+        dataframe["mfi"] = ta.MFI(dataframe)
 
         # CMO
-        dataframe['cmo'] = ta.CMO(dataframe)
+        dataframe["cmo"] = ta.CMO(dataframe)
 
         return dataframe
 
@@ -71,11 +66,12 @@ class CMCWinner(IStrategy):
         """
         dataframe.loc[
             (
-                (dataframe['cci'].shift(1) < -100) &
-                (dataframe['mfi'].shift(1) < 20) &
-                (dataframe['cmo'].shift(1) < -50)
+                (dataframe["cci"].shift(1) < -100)
+                & (dataframe["mfi"].shift(1) < 20)
+                & (dataframe["cmo"].shift(1) < -50)
             ),
-            'buy'] = 1
+            "buy",
+        ] = 1
 
         return dataframe
 
@@ -87,9 +83,10 @@ class CMCWinner(IStrategy):
         """
         dataframe.loc[
             (
-                (dataframe['cci'].shift(1) > 100) &
-                (dataframe['mfi'].shift(1) > 80) &
-                (dataframe['cmo'].shift(1) > 50)
+                (dataframe["cci"].shift(1) > 100)
+                & (dataframe["mfi"].shift(1) > 80)
+                & (dataframe["cmo"].shift(1) > 50)
             ),
-            'sell'] = 1
+            "sell",
+        ] = 1
         return dataframe

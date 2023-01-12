@@ -1,11 +1,11 @@
 # --- Do not remove these libs ---
-import coingro.vendor.qtpylib.indicators as qtpylib
 import talib.abstract as ta
-from coingro.exchange import timeframe_to_minutes
-from coingro.strategy.interface import IStrategy
 from pandas import DataFrame
 from technical.util import resample_to_interval, resampled_merge
 
+import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.exchange import timeframe_to_minutes
+from coingro.strategy.interface import IStrategy
 
 # --------------------------------
 
@@ -22,16 +22,14 @@ class ReinforcedAverageStrategy(IStrategy):
 
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi"
-    minimal_roi = {
-        "0": 0.5
-    }
+    minimal_roi = {"0": 0.5}
 
     # Optimal stoploss designed for the strategy
     # This attribute will be overridden if the config file contains "stoploss"
     stoploss = -0.2
 
     # Optimal timeframe for the strategy
-    timeframe = '4h'
+    timeframe = "4h"
 
     # trailing stoploss
     trailing_stop = False
@@ -49,17 +47,17 @@ class ReinforcedAverageStrategy(IStrategy):
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
-        dataframe['maShort'] = ta.EMA(dataframe, timeperiod=8)
-        dataframe['maMedium'] = ta.EMA(dataframe, timeperiod=21)
+        dataframe["maShort"] = ta.EMA(dataframe, timeperiod=8)
+        dataframe["maMedium"] = ta.EMA(dataframe, timeperiod=21)
         ##################################################################################
         # required for graphing
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_middleband'] = bollinger['mid']
+        bollinger = qtpylib.bollinger_bands(dataframe["close"], window=20, stds=2)
+        dataframe["bb_lowerband"] = bollinger["lower"]
+        dataframe["bb_upperband"] = bollinger["upper"]
+        dataframe["bb_middleband"] = bollinger["mid"]
         self.resample_interval = timeframe_to_minutes(self.timeframe) * 12
         dataframe_long = resample_to_interval(dataframe, self.resample_interval)
-        dataframe_long['sma'] = ta.SMA(dataframe_long, timeperiod=50, price='close')
+        dataframe_long["sma"] = ta.SMA(dataframe_long, timeperiod=50, price="close")
         dataframe = resampled_merge(dataframe, dataframe_long, fill_na=True)
 
         return dataframe
@@ -73,11 +71,12 @@ class ReinforcedAverageStrategy(IStrategy):
 
         dataframe.loc[
             (
-                qtpylib.crossed_above(dataframe['maShort'], dataframe['maMedium']) &
-                (dataframe['close'] > dataframe[f'resample_{self.resample_interval}_sma']) &
-                (dataframe['volume'] > 0)
+                qtpylib.crossed_above(dataframe["maShort"], dataframe["maMedium"])
+                & (dataframe["close"] > dataframe[f"resample_{self.resample_interval}_sma"])
+                & (dataframe["volume"] > 0)
             ),
-            'buy'] = 1
+            "buy",
+        ] = 1
 
         return dataframe
 
@@ -89,8 +88,9 @@ class ReinforcedAverageStrategy(IStrategy):
         """
         dataframe.loc[
             (
-                qtpylib.crossed_above(dataframe['maMedium'], dataframe['maShort']) &
-                (dataframe['volume'] > 0)
+                qtpylib.crossed_above(dataframe["maMedium"], dataframe["maShort"])
+                & (dataframe["volume"] > 0)
             ),
-            'sell'] = 1
+            "sell",
+        ] = 1
         return dataframe

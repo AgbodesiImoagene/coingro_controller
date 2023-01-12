@@ -1,9 +1,9 @@
 # --- Do not remove these libs ---
-import coingro.vendor.qtpylib.indicators as qtpylib
 import talib.abstract as ta
-from coingro.strategy.interface import IStrategy
 from pandas import DataFrame
 
+import coingro.vendor.qtpylib.indicators as qtpylib
+from coingro.strategy.interface import IStrategy
 
 # --------------------------------
 
@@ -22,32 +22,30 @@ class Simple(IStrategy):
     # Minimal ROI designed for the strategy.
     # adjust based on market conditions. We would recommend to keep it low for quick turn arounds
     # This attribute will be overridden if the config file contains "minimal_roi"
-    minimal_roi = {
-        "0": 0.01
-    }
+    minimal_roi = {"0": 0.01}
 
     # Optimal stoploss designed for the strategy
     # This attribute will be overridden if the config file contains "stoploss"
     stoploss = -0.25
 
     # Optimal timeframe for the strategy
-    timeframe = '5m'
+    timeframe = "5m"
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         # MACD
         macd = ta.MACD(dataframe)
-        dataframe['macd'] = macd['macd']
-        dataframe['macdsignal'] = macd['macdsignal']
-        dataframe['macdhist'] = macd['macdhist']
+        dataframe["macd"] = macd["macd"]
+        dataframe["macdsignal"] = macd["macdsignal"]
+        dataframe["macdhist"] = macd["macdhist"]
 
         # RSI
-        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=7)
+        dataframe["rsi"] = ta.RSI(dataframe, timeperiod=7)
 
         # required for graphing
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=12, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_middleband'] = bollinger['mid']
+        bollinger = qtpylib.bollinger_bands(dataframe["close"], window=12, stds=2)
+        dataframe["bb_lowerband"] = bollinger["lower"]
+        dataframe["bb_upperband"] = bollinger["upper"]
+        dataframe["bb_middleband"] = bollinger["mid"]
 
         return dataframe
 
@@ -55,21 +53,18 @@ class Simple(IStrategy):
         dataframe.loc[
             (
                 (
-                        (dataframe['macd'] > 0)  # over 0
-                        & (dataframe['macd'] > dataframe['macdsignal'])  # over signal
-                        & (dataframe['bb_upperband'] > dataframe['bb_upperband'].shift(1))
-                        # pointed up
-                        & (dataframe['rsi'] > 70)  # optional filter, need to investigate
+                    (dataframe["macd"] > 0)  # over 0
+                    & (dataframe["macd"] > dataframe["macdsignal"])  # over signal
+                    & (dataframe["bb_upperband"] > dataframe["bb_upperband"].shift(1))
+                    # pointed up
+                    & (dataframe["rsi"] > 70)  # optional filter, need to investigate
                 )
             ),
-            'buy'] = 1
+            "buy",
+        ] = 1
         return dataframe
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         # different strategy used for sell points, due to be able to duplicate it to 100%
-        dataframe.loc[
-            (
-                (dataframe['rsi'] > 80)
-            ),
-            'sell'] = 1
+        dataframe.loc[((dataframe["rsi"] > 80)), "sell"] = 1
         return dataframe

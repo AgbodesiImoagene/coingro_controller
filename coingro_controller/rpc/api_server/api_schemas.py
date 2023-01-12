@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from coingro.rpc.api_server.api_schemas import Daily, StatusMsg
 from pydantic import BaseModel
+
+from coingro.rpc.api_server.api_schemas import Daily, StatusMsg
 
 
 class StrategyMini(BaseModel):

@@ -11,7 +11,7 @@ from coingro.constants import DATETIME_PRINT_FORMAT
 from coingro.exchange.common import SUPPORTED_EXCHANGES
 from coingro.rpc import RPCException
 from coingro.rpc.fiat_convert import CryptoToFiatConverter
-from coingro_controller.persistence import Bot, Strategy
+from coingro_controller.persistence import Strategy
 from coingro_controller.rpc.client import CoingroClient
 
 logger = logging.getLogger(__name__)
@@ -118,17 +118,3 @@ class RPC:
             }
         except Exception as e:
             raise RPCException(f"Could not delete bot due to {e}.")
-
-    def _rpc_summary(self, bot_id: str) -> Dict[str, Any]:
-        try:
-            bot = Bot.bot_by_id(bot_id)
-            url = bot.api_url if bot else ""
-            timeunits = {"days": "daily", "weeks": "weekly", "months": "monthly"}
-            resp = {}
-            for unit in timeunits:
-                timeframe = timeunits[unit]
-                data = self._client.timeunit_profit(url, unit, 1)
-                resp[timeframe] = data
-            return resp
-        except Exception as e:
-            raise RPCException(str(e)) from e

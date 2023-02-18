@@ -3,6 +3,7 @@ This module contains the class to persist trades into SQLite
 """
 import logging
 
+import rapidjson
 from sqlalchemy import create_engine, event
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -19,6 +20,13 @@ logger = logging.getLogger(__name__)
 
 
 _SQL_DOCS_URL = "http://docs.sqlalchemy.org/en/latest/core/engines.html#database-urls"
+
+
+def custom_serializer(obj):
+    if isinstance(obj, dict) and obj.get("max_open_trades") == float("inf"):
+        obj["max_open_trades"] = -1
+
+    return rapidjson.dumps(obj, default=str)
 
 
 def init_db(db_url: str) -> None:
@@ -50,7 +58,7 @@ def init_db(db_url: str) -> None:
         )
 
     try:
-        engine = create_engine(db_url, future=True, **kwargs)
+        engine = create_engine(db_url, json_serializer=custom_serializer, future=True, **kwargs)
     except NoSuchModuleError:
         raise OperationalException(
             f"Given value for db_url: '{db_url}' "

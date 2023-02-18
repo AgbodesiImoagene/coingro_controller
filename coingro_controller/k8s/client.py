@@ -23,13 +23,15 @@ class Client:
     def get_coingro_instance(self, bot_id: str):
         try:
             return self.core_api.read_namespaced_pod(bot_id, self.namespace)
-        except Exception:
+        except Exception as e:
+            logger.error(f"Kubernetes client error: {e}")
             return None
 
     def _get_coingro_service(self, bot_id: str):
         try:
             return self.core_api.read_namespaced_service(bot_id, self.namespace)
-        except Exception:
+        except Exception as e:
+            logger.error(f"Kubernetes client error: {e}")
             return None
 
     def get_coingro_instances(self) -> List[Any]:

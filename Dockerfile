@@ -1,4 +1,4 @@
-FROM coingro:1.0.11
+FROM coingro:1.0.12
 
 USER root
 

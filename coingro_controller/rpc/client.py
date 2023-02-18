@@ -581,4 +581,4 @@ class CoingroClient:
 
         :return: json object
         """
-        return self._get(serverurl, "trade_summary")
+        return self._get(serverurl, "summary")

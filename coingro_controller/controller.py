@@ -15,13 +15,14 @@ from coingro.configuration import Configuration
 from coingro.enums import State
 from coingro.mixins import LoggingMixin
 from coingro.resolvers import StrategyResolver
-from coingro_controller import __env__, __version__
+from coingro_controller import __env__, __group__, __version__
 from coingro_controller.constants import (
     BOT_NAME_ADJECTIVES,
     DEFAULT_EXCHANGE,
     DEFAULT_STAKE_CURRENCY,
 )
 from coingro_controller.k8s import Client
+from coingro_controller.loggers import setup_logging
 from coingro_controller.persistence import Bot, Strategy, cleanup_db, init_db
 from coingro_controller.rpc import CoingroClient, RPCManager
 
@@ -45,6 +46,9 @@ class Controller(LoggingMixin):
         self.default_bot_config = Configuration(
             {"config": ["user_data/config/config.json"]}
         ).get_config()
+        setup_logging(
+            self.config if "verbosity" in config else {"verbosity": 2}
+        )  # get_config has side effect of updating global logging
 
         initial_state = self.config.get("initial_state")
         self.state = State[initial_state.upper()] if initial_state else State.STOPPED
@@ -72,9 +76,10 @@ class Controller(LoggingMixin):
         otherwise a new trade is created.
         :return: True if one or more trades has been created or closed, False otherwise
         """
-        self.check_bots()
-        self.refresh_strategies()
-        self.check_strategies()
+        if __group__ == "master":
+            self.check_bots()
+            self.refresh_strategies()
+            self.check_strategies()
         self.last_process = datetime.now(timezone.utc)
 
     def process_stopped(self) -> None:
@@ -85,13 +90,12 @@ class Controller(LoggingMixin):
 
     def check_bots(self) -> None:
         active_bots = Bot.get_active_bots()
-
         for bot in active_bots:
             bot_id = bot.bot_id
             instance = self.k8s_client.get_coingro_instance(bot_id.lower())
             status = instance.status.phase if instance else None
             outdated = parse(bot.version) < parse(self.config["cg_version"])
-            if status != "Running" or outdated:
+            if (status not in ("Running", "Pending")) or outdated:
                 if bot.is_strategy:
                     strategy = Strategy.strategy_by_bot_id(bot_id)
                     env = (
@@ -190,7 +194,7 @@ class Controller(LoggingMixin):
 
         return bot.bot_id, bot.bot_name  # type: ignore
 
-    def deactivate_bot(self, bot_id: str, delete: bool = False):
+    def deactivate_bot(self, bot_id: str, delete: bool = False) -> Optional[str]:
         bot = Bot.bot_by_id(bot_id)
         if bot:
             self.k8s_client.delete_coingro_instance(bot_id)
@@ -243,7 +247,7 @@ class Controller(LoggingMixin):
             if strategy.bot.bot_name not in strategy_names:
                 self.deactivate_bot(strategy.bot.bot_id)
 
-    def refresh_strategies(self):
+    def refresh_strategies(self) -> None:
         for strategy in Strategy.get_active_strategies():
             if (not strategy.latest_refresh) or (
                 datetime.utcnow() - strategy.latest_refresh > timedelta(hours=1)

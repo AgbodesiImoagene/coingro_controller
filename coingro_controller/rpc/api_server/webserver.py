@@ -19,9 +19,6 @@ from coingro_controller.rpc.rpc import RPC
 logger = logging.getLogger(__name__)
 
 
-app = FastAPI()
-
-
 class ApiServer(RPCHandler):
 
     __instance = None
@@ -64,6 +61,7 @@ class ApiServer(RPCHandler):
             docs_url="/docs" if api_config.get("enable_openapi", False) else None,
             redoc_url="/redoc" if api_config.get("enable_openapi", False) else None,
             default_response_class=CGJSONResponse,
+            debug=True,
         )
         self.configure_app(self.app, self._config)
 

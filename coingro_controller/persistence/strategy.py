@@ -53,7 +53,7 @@ class Strategy(_DECL_BASE):
     latest_refresh = Column(DateTime)
 
     def __repr__(self):
-        return f"Strategy(id={self.id}, name={self.name}, bot_id={self.bot_id})"
+        return f"Strategy(id={self.id}, name={self.bot.bot_name}, bot_id={self.bot_id})"
 
     def to_json(self, minified: bool = False) -> Dict[str, Any]:
         resp = {

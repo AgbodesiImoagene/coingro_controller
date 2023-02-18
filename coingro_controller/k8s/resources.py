@@ -2,8 +2,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import rapidjson
 from kubernetes import client
-from rapidjson import WM_PRETTY, dumps
 
 from coingro.constants import DEFAULT_CONFIG_SAVE, USERPATH_CONFIG
 from coingro_controller.constants import DEFAULT_NAMESPACE
@@ -107,7 +107,10 @@ class Resources:
         liveness_probe.initial_delay_seconds = 600
         liveness_probe.period_seconds = 120
 
-        data_mount = client.V1VolumeMount(mount_path="/coingro/user_data/", name="user-data-volume")
+        # data_mount = client.V1VolumeMount(
+        #     mount_path="/coingro/user_data/",
+        #     name="user-data-volume"
+        # )
 
         strategies_mount = client.V1VolumeMount(
             mount_path="/coingro/strategies/", name="strategies-volume"
@@ -115,7 +118,7 @@ class Resources:
         strategies_mount.read_only = True
 
         # data_pvc_claim_source = client.V1PersistentVolumeClaimVolumeSource(
-        #     claim_name=self._config.get("cg_user_data_pvc_claim", "usser-data-pvc")
+        #     claim_name=self._config.get("cg_user_data_pvc_claim", "user-data-pvc")
         # )
 
         strategies_pvc_claim_source = client.V1PersistentVolumeClaimVolumeSource(
@@ -137,7 +140,9 @@ class Resources:
         cg_resources.limits = {"cpu": "250m", "ephemeral-storage": "256Mi", "memory": "128Mi"}
         cg_resources.requests = {"cpu": "100m", "ephemeral-storage": "128Mi", "memory": "64Mi"}
 
-        config_string = dumps(config, default=str, write_mode=WM_PRETTY, indent=4)
+        config_string = rapidjson.dumps(
+            config, default=str, write_mode=rapidjson.WM_PRETTY, indent=4
+        )
         file_path = Path(config["user_data_dir"]) / USERPATH_CONFIG / DEFAULT_CONFIG_SAVE
 
         cg_container = client.V1Container(name="coingro-container")
@@ -147,7 +152,7 @@ class Resources:
         cg_container.env = env_list
         cg_container.liveness_probe = liveness_probe
         # cg_container.startup_probe = startup_probe
-        cg_container.volume_mounts = [data_mount, strategies_mount]
+        cg_container.volume_mounts = [strategies_mount]
         cg_container.ports = [cg_api_server_port]
         cg_container.resources = cg_resources
 

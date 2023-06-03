@@ -115,7 +115,7 @@ class Strategy(_DECL_BASE):
         Retrieve strategy based on name
         :return: Strategy or None
         """
-        return Strategy.query.filter(Strategy.bot.bot_name == name).first()
+        return Strategy.query.join(Bot).filter(Bot.bot_name == name).first()
 
     @staticmethod
     def strategy_names() -> List[str]:

@@ -7,10 +7,15 @@ from typing import Any, Dict
 from coingro.constants import USERPATH_LOGS
 from coingro.exceptions import OperationalException
 from coingro.loggers import CGBufferingHandler
+from coingro_controller import __env__, __group__
 from coingro_controller.constants import USER_DATA_DIR
 
 logger = logging.getLogger(__name__)
-LOGFORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+LOGFORMAT = (
+    f"%(asctime)s - {__group__} - %(name)s - %(levelname)s - %(message)s"
+    if __env__ == "kubernetes"
+    else "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 # Initialize bufferhandler - will be used for /log endpoints
 bufferHandler = CGBufferingHandler(1000)

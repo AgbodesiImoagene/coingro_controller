@@ -36,19 +36,23 @@ class Controller(LoggingMixin):
         self.state = State.STOPPED
 
         self.config = config
+        self.default_bot_config = Configuration(
+            {
+                "config": ["/coingro/user_data/config/config.json"],
+                "user_data_dir": "/coingro/user_data/",
+                "strategy": "Strategy001",
+            }
+        ).get_config()
+        setup_logging(
+            self.config if "verbosity" in config else {"verbosity": 2}
+        )  # get_config has side effect of updating global logging
+
         self.coingro_client = CoingroClient(self.config)
         init_db(self.config["db_url"])
         self.k8s_client = Client(self.config)
 
         self.rpc: RPCManager = RPCManager(self)
         LoggingMixin.__init__(self, logger)
-
-        self.default_bot_config = Configuration(
-            {"config": ["user_data/config/config.json"]}
-        ).get_config()
-        setup_logging(
-            self.config if "verbosity" in config else {"verbosity": 2}
-        )  # get_config has side effect of updating global logging
 
         initial_state = self.config.get("initial_state")
         self.state = State[initial_state.upper()] if initial_state else State.STOPPED
@@ -153,15 +157,16 @@ class Controller(LoggingMixin):
         if not is_deleted:
             bot_config = (
                 bot.configuration
-                if bot
-                else self.default_bot_config.copy().update({"bot_name": bot_name})
+                if bot and bot.configuration and isinstance(bot.configuration, dict)
+                else self.default_bot_config.copy()
             )
+            bot_config.update({"bot_name": bot_name})
 
             if instance:
-                self.k8s_client.replace_coingro_instance(bot_id, env_vars)
+                self.k8s_client.replace_coingro_instance(bot_id, bot_config, env_vars)
                 logger.info(f"Restarted coingro instance {bot_id}.")
             else:
-                self.k8s_client.create_coingro_instance(bot_id, env_vars)
+                self.k8s_client.create_coingro_instance(bot_id, bot_config, env_vars)
                 logger.info(f"Created coingro instance {bot_id}.")
 
             if not bot:
@@ -177,9 +182,9 @@ class Controller(LoggingMixin):
                 elif "cg_initial_state" in self.config:
                     bot.state = State[self.config["cg_initial_state"].upper()]
 
-                bot.configuration = bot_config
                 Bot.query.session.add(bot)
 
+            bot.configuration = bot_config
             bot.is_active = True
             bot.image = self.config["cg_image"]
             bot.version = self.config["cg_version"]

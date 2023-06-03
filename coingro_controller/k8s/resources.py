@@ -143,12 +143,16 @@ class Resources:
         config_string = rapidjson.dumps(
             config, default=str, write_mode=rapidjson.WM_PRETTY, indent=4
         )
-        file_path = Path(config["user_data_dir"]) / USERPATH_CONFIG / DEFAULT_CONFIG_SAVE
+        file_path = (
+            Path(config.get("user_data_dir", "/coingro/user_data"))
+            / USERPATH_CONFIG
+            / DEFAULT_CONFIG_SAVE
+        )
 
         cg_container = client.V1Container(name="coingro-container")
         cg_container.image = self._config["cg_image"]
         cg_container.command = ["/bin/sh", "-c"]
-        cg_container.args = [f"printf {config_string} >> /coingro/{file_path} && coingro trade"]
+        cg_container.args = [f"printf '{config_string}' > {file_path} && coingro trade"]
         cg_container.env = env_list
         cg_container.liveness_probe = liveness_probe
         # cg_container.startup_probe = startup_probe

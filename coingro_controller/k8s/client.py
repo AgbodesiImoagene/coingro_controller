@@ -17,7 +17,7 @@ class Client:
         self.resources = Resources(config)
         self.namespace = self.resources.namespace
 
-        k8s_config.load_incluster_config()
+        k8s_config.load_config()
         self.core_api = client.CoreV1Api()
 
     def get_coingro_instance(self, bot_id: str):

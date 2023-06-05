@@ -1,0 +1,3 @@
+[submodule "coingro"]
+        path = coingro
+        url = https://github.com/AgbodesiImoagene/coingro.git

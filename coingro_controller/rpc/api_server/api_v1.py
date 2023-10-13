@@ -41,6 +41,7 @@ from coingro.rpc.api_server.api_schemas import (
     StatusMsg,
     SysInfo,
     TimeUnitProfit,
+    UpdateAllSettingsPayload,
     UpdateExchangePayload,
     UpdateSettingsPayload,
     UpdateStrategyPayload,
@@ -766,6 +767,30 @@ def update_strategy(
 
 @router.post("/settings", response_model=StatusMsg, tags=["bot control", "setup"])
 def update_general_settings(
+    payload: UpdateSettingsPayload, bot=Depends(get_bot), client=Depends(get_client)
+):
+    kwargs = payload.dict(exclude_none=True)
+    try:
+        res = client.update_settings(bot.api_url, **kwargs)
+        StatusMsg(**res)
+        config = Bot_RPC._update_general_settings(bot.configuration, kwargs)
+        config = Encryption(config, bot.bot_id).get_encrypted_config()
+        bot.configuration = deepcopy(config)
+        if "bot_name" in kwargs:
+            bot.bot_name = kwargs["bot_name"]
+        if "stake_currency" in kwargs:
+            bot.stake_currency = kwargs["stake_currency"]
+        Bot.commit()
+        return res
+    except ValidationError:
+        if hasattr(res, "__getitem__") and "detail" in res:
+            raise HTTPException(status_code=400, detail=res["detail"])
+        else:
+            raise HTTPException(status_code=400, detail=res)
+
+
+@router.post("/all_settings", response_model=StatusMsg, tags=["bot control", "setup"])
+def update_settings(
     payload: UpdateSettingsPayload, bot=Depends(get_bot), client=Depends(get_client)
 ):
     kwargs = payload.dict(exclude_none=True)

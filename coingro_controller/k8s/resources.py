@@ -137,8 +137,8 @@ class Resources:
         cg_api_server_port.container_port = self.cg_port
 
         cg_resources = client.V1ResourceRequirements()
-        cg_resources.limits = {"cpu": "250m", "ephemeral-storage": "256Mi", "memory": "128Mi"}
-        cg_resources.requests = {"cpu": "100m", "ephemeral-storage": "128Mi", "memory": "64Mi"}
+        # cg_resources.limits = {"cpu": "250m", "ephemeral-storage": "256Mi", "memory": "128Mi"}
+        # cg_resources.requests = {"cpu": "100m", "ephemeral-storage": "128Mi", "memory": "64Mi"}
 
         config_string = rapidjson.dumps(
             config, default=str, write_mode=rapidjson.WM_PRETTY, indent=4

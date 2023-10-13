@@ -731,11 +731,13 @@ def update_exchange(
     try:
         res = client.update_exchange(bot.api_url, **kwargs)
         StatusMsg(**res)
-        config = Bot_RPC._update_exchange(bot.configuration, kwargs)
+        config = Encryption(bot.configuration, bot.bot_id).get_plain_config()
+        config = Bot_RPC._update_exchange(config, kwargs)
+        config = Encryption(config, bot.bot_id).get_encrypted_config()
         bot.configuration = deepcopy(config)
         if "name" in kwargs:
             bot.exchange = kwargs["name"]
-            Bot.commit()
+        Bot.commit()
         return res
     except ValidationError:
         if hasattr(res, "__getitem__") and "detail" in res:
@@ -756,7 +758,7 @@ def update_strategy(
         bot.configuration = deepcopy(config)
         if "strategy" in kwargs:
             bot.strategy = kwargs["strategy"]
-            Bot.commit()
+        Bot.commit()
         return res
     except ValidationError:
         if hasattr(res, "__getitem__") and "detail" in res:
@@ -774,7 +776,6 @@ def update_general_settings(
         res = client.update_settings(bot.api_url, **kwargs)
         StatusMsg(**res)
         config = Bot_RPC._update_general_settings(bot.configuration, kwargs)
-        config = Encryption(config, bot.bot_id).get_encrypted_config()
         bot.configuration = deepcopy(config)
         if "bot_name" in kwargs:
             bot.bot_name = kwargs["bot_name"]
@@ -790,16 +791,23 @@ def update_general_settings(
 
 
 @router.post("/all_settings", response_model=StatusMsg, tags=["bot control", "setup"])
-def update_settings(
-    payload: UpdateSettingsPayload, bot=Depends(get_bot), client=Depends(get_client)
+def update_all_settings(
+    payload: UpdateAllSettingsPayload, bot=Depends(get_bot), client=Depends(get_client)
 ):
     kwargs = payload.dict(exclude_none=True)
     try:
-        res = client.update_settings(bot.api_url, **kwargs)
+        res = client.update_all_settings(bot.api_url, **kwargs)
         StatusMsg(**res)
-        config = Bot_RPC._update_general_settings(bot.configuration, kwargs)
+        config = Encryption(bot.configuration, bot.bot_id).get_plain_config()
+        config = Bot_RPC._update_exchange(config, kwargs)
         config = Encryption(config, bot.bot_id).get_encrypted_config()
+        config = Bot_RPC._update_strategy(config, kwargs)
+        config = Bot_RPC._update_general_settings(config, kwargs)
         bot.configuration = deepcopy(config)
+        if "name" in kwargs:
+            bot.exchange = kwargs["name"]
+        if "strategy" in kwargs:
+            bot.strategy = kwargs["strategy"]
         if "bot_name" in kwargs:
             bot.bot_name = kwargs["bot_name"]
         if "stake_currency" in kwargs:

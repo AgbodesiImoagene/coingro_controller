@@ -553,6 +553,86 @@ class CoingroClient:
             },
         )
 
+    def update_all_settings(
+        self,
+        serverurl,
+        max_open_trades=None,
+        stake_currency=None,
+        stake_amount=None,
+        tradable_balance_ratio=None,
+        fiat_display_currency=None,
+        available_capital=None,
+        dry_run_wallet=None,
+        dry_run=None,
+        name=None,
+        key=None,
+        secret=None,
+        password=None,
+        uid=None,
+        strategy=None,
+        minimal_roi=None,
+        stoploss=None,
+        trailing_stop=None,
+        trailing_stop_positive=None,
+        trailing_stop_positive_offset=None,
+        trailing_only_offset_is_reached=None,
+    ):
+        """Update full configuration
+
+        :param max_open_trades: Maximum number of trades that can be open simultaneously
+            (-1 for infinite).
+        :param stake_currency: Stake currency for trading.
+        :param stake_amount: Amount of stake currency entered into each trade.
+        :param tradable_balance_ratio: Ratio of starting balance available for trading.
+        :param fiat_display_currency: Currency used to display perfomance metrics.
+        :param available_capital: Starting capital available to the bot (useful for running more
+            than one coingro instance on the same account).
+        :param dry_run_wallet: Starting value of simulated stake currency
+            (only used in dry-run mode).
+        :param dry_run: Boolean indicating if the bot run in dry-run mode.
+        :param name: Exchange name.
+        :param key: API key (only required in live mode).
+        :param secret: API secret key (only required in live mode).
+        :param password: Password (depends on exchange).
+        :param uid: UID (depends on exchange).
+        :param strategy: The strategy the bot should use.
+        :param minimal_roi: Json object representing the minimal roi in the form {"<mins>": <roi>}.
+        :param stoploss: Fractional loss at which to close trades (negative float).
+        :param trailing_stop: boolean indicating if a trailing stoploss should be utilised.
+        :param trailing_stop_positive: Fraction behind highest observed price at which to set the
+            trailing stoploss.
+        :param trailing_stop_positive_offset: Fraction indicating price increase required for
+            trailing stoploss to be activated.
+        :param trailing_only_offset_is_reached: Should the positive offset be used.
+        :return: json object
+        """
+        return self._post(
+            serverurl,
+            "all_settings",
+            data={
+                "max_open_trades": max_open_trades,
+                "stake_currency": stake_currency,
+                "stake_amount": stake_amount,
+                "tradable_balance_ratio": tradable_balance_ratio,
+                "fiat_display_currency": fiat_display_currency,
+                "available_capital": available_capital,
+                "dry_run_wallet": dry_run_wallet,
+                "dry_run": dry_run,
+                "name": name,
+                "key": key,
+                "secret": secret,
+                "password": password,
+                "uid": uid,
+                "strategy": strategy,
+                "minimal_roi": minimal_roi,
+                "stoploss": stoploss,
+                "trailing_stop": trailing_stop,
+                "trailing_stop_positive": trailing_stop_positive,
+                "trailing_stop_positive_offset": trailing_stop_positive_offset,
+                "trailing_only_offset_is_reached": trailing_only_offset_is_reached,
+            },
+        )
+
     def reset_original_config(self, serverurl):
         """Reset the configuration to its original state
 

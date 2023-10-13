@@ -1,4 +1,4 @@
-./coingro[all]
+-e ./coingro[all]
 kubernetes==24.2.0
 packaging==21.3
 randomname==0.1.5
